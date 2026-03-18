@@ -1,0 +1,34 @@
+Créer un script Python qui génère automatiquement des descriptions de produits avec une IA à partir d’un fichier CSV et les insère dans une page produit HTML pour une boutique en ligne.
+
+
+🎯 Objectif du projet
+Créer un système automatique qui génère des descriptions de produits avec une IA pour une boutique en ligne Pocitace24.cz.
+Les produits concernés sont principalement :
+- ordinateurs
+- ordinateurs portables
+- écrans
+
+Le but est de produire des descriptions de produits riches et marketing automatiquement à partir d’un fichier CSV.
+
+
+🧩 Principe du fonctionnement
+1️⃣ Exporter les produits en CSV
+2️⃣ Générer automatiquement une description avec une IA
+
+Un script Python :
+merge_descriptions.py
+
+va :
+
+Lire les produits dans le CSV
+Envoyer les informations du produit à une IA
+Générer une description marketing complète
+
+
+⚙️ Résultat attendu
+Un système automatique qui :
+- lit un fichier CSV de produits
+- génère une description avec une IA
+- crée une description marketing riche
+- insère la description dans un template HTML
+- produit un fichier prêt pour la boutique en ligne
