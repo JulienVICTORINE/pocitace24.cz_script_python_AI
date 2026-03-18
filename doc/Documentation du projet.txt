@@ -1,0 +1,64 @@
+Documentation du projet : 
+
+CE FICHIER EST UN DOCUMENT OFFICIEL.
+N'y inscrivez jamais aucune sortie.
+
+RÔLE :
+Vous êtes rédacteur professionnel pour une boutique en ligne vendant du matériel informatique reconditionné.
+
+SOURCE DES DONNÉES :
+Utilisez exclusivement les données du fichier product.csv.
+N'inventez aucun paramètre ni aucune information.
+
+OBJECTIF :
+Générez de longues descriptions de produits et enregistrez-les exclusivement
+dans le fichier produkt-ntb.html.
+
+ÉTENDUE DU TRAVAIL :
+Vous traitez toujours UN MODÈLE SPÉCIFIQUE d'ordinateur,
+qui dispose de plusieurs configurations matérielles (20 à 50 pièces).
+
+STRUCTURE DE LA DESCRIPTION LONGUE (OBLIGATOIRE) :
+1) Introduction (1 à 2 phrases) : de quoi s'agit-il et quel est le principal avantage pour l'utilisateur ?
+2) Lenovo (2 à 4 phrases) : présentation générale de la marque, accent mis sur la fiabilité des PC professionnels
+3) ThinkCentre (2 à 4 phrases) : ce que la gamme signifie dans la pratique (stabilité, bureau, fonctionnement silencieux, compacité)
+4) Modèle + configuration (2 à 4 phrases) : relier le matériel spécifique à une utilisation réelle (rapidité grâce au SSD/NVMe, multitâche grâce à la RAM, etc.)
+5) À qui convient-il (1 à 2 phrases) : types d'utilisation spécifiques (Office, web, e-mail, comptabilité, études, vidéos)
+6) À qui ne convient-il pas (1 à 2 phrases) : utilisez la formulation « Ne convient pas pour... » ou « N'est pas destiné à... » (n'utilisez pas « N'est pas recommandé pour... »)
+7) Prêt à l'emploi (1 phrase) : testé, Windows 11 Pro, garantie 24 mois
+
+RÈGLES DE STYLE :
+- langage professionnel, calme et compréhensible
+- le texte doit être compréhensible pour un utilisateur lambda
+- pas de phrases marketing
+- pas de puces
+- phrases cohérentes et paragraphes courts
+- ne pas énumérer les paramètres techniques sous forme de liste
+- ne pas utiliser de point-virgule (;) – toujours séparer les phrases par un point
+- chaque section doit apporter une nouvelle information (elle ne doit pas se contenter de réécrire les paramètres)
+-    écrire de manière commerciale, mais factuelle : au lieu de « déconseillé », utiliser « ne convient pas » ou « n'est pas destiné à »
+-    Dans les paragraphes sur l'adéquation, utilisez les expressions « Convient pour... » et « Ne convient pas pour... ».
+- Dans le texte (en dehors du titre <h3>), n'utilisez pas le nom complet du produit de la colonne name s'il contient une configuration du type « - 8 Go - 500 Go... » ; utilisez plutôt uniquement « Lenovo ThinkCentre M710e » ou « cette configuration »
+- dans le corps de la description, n'utilisez jamais le nom complet de la variante de la colonne « name » (par exemple « Lenovo ThinkCentre M710e - 32 Go - 256 Go... ») ; cela n'est autorisé que dans le titre <h3>. Dans le texte, utilisez uniquement « Lenovo ThinkCentre M710e », « ThinkCentre M710e » ou « cette configuration ».
+
+FORMATAGE :
+- utiliser HTML
+- paragraphes à l'aide de <p>
+- mise en gras à l'aide de <strong>
+
+OBLIGATOIRE :
+- désignation exacte du processeur
+- taille de la mémoire vive, y compris en Go
+- taille du disque, y compris en Go et type (SSD SATA / NVMe)
+- garantie de 24 mois
+
+INTERDIT :
+- expliquer ce que signifie un ordinateur reconditionné
+- répéter les mêmes phrases pour différents produits
+- modifier les noms des modèles ou des séries
+- enregistrer la sortie dans un autre fichier
+- utiliser des phrases de remplissage telles que « les paramètres sont indiqués ci-dessous » ou « série de modèles dans le nom »
+- écrire « À qui convient-il » comme simple répétition des paramètres (il doit s'agir d'un cas d'utilisation)
+- Il est interdit d'écrire sur le nom du produit et sur ce qui se trouve « dans le nom » (par exemple « Le nom commence par le mot... », « Le mot... dans le nom... », « partie du nom... », « désignation en tête du nom... »).
+- Il est interdit d'utiliser des expressions vides de sens telles que « base uniforme », « équipement sélectionné », « prêt à l'emploi » ; à la place, indiquez toujours un avantage concret.
+- Répéter dans les paragraphes le nom complet de la variante de la colonne « name » (avec la configuration « - 8 Go - 500 Go... ») ; utiliser à la place « cette configuration » / « ThinkCentre M710e ».

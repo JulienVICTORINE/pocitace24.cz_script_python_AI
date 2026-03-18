@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{name}}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <style type="text/tailwindcss">
+      .product-badge {
+        @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800;
+      }
+      .config-card {
+        @apply border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer bg-white;
+      }
+      .feature-img {
+        @apply rounded-xl shadow-lg w-full max-w-full h-auto object-contain aspect-square bg-white p-4;
+      }
+      .gallery-thumb {
+        @apply rounded-lg shadow hover:ring-2 hover:ring-blue-500 transition cursor-pointer bg-white p-2 w-full h-full object-contain;
+      }
+
+      .product-description-wrapper {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-50 text-gray-900 leading-relaxed">
+    <div
+      class="product-description-wrapper max-w-4xl mx-auto px-4 py-8 sm:px-6"
+    >
+      <!-- Container -->
+      <div class="max-w-4xl mx-auto px-4 py-6 sm:px-6 sm:py-10">
+        <!-- Header Section -->
+        <header class="mb-12 text-center">
+          <div class="flex justify-center gap-2 mb-4">
+            <span
+              class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"
+            >
+              <i class="fas fa-check-circle mr-1 text-sm"></i> Skladem
+            </span>
+            <span
+              class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+            >
+              <i class="fas fa-shield-alt mr-1 text-sm"></i> Záruka 24 měsíců
+            </span>
+            <span
+              class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800"
+            >
+              <i class="fas fa-undo mr-1 text-sm"></i> 30 dnů na vrácení
+            </span>
+          </div>
+          <h1
+            class="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight mb-6"
+          >
+            {{name}}
+          </h1>
+          <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+            {{short_description}}
+          </p>
+        </header>
+
+        <!-- Product Summary Section (Hero Content) -->
+        <div
+          class="bg-white p-5 sm:p-8 rounded-2xl shadow-sm border border-gray-100 mb-16 sm:mb-20"
+        >
+          <div class="max-w-4xl mx-auto">
+            <h2 class="text-3xl font-bold mb-6 text-center text-gray-800">
+              Spolehlivý základ pro Vaše podnikání
+            </h2>
+            <div class="space-y-6 text-gray-700 text-lg leading-relaxed">
+              {{long_description_html}}
+              <div
+                class="flex flex-wrap justify-center gap-8 pt-6 border-t border-gray-50 mt-8"
+              >
+                <div class="flex flex-col items-center w-20">
+                  <span class="bg-blue-50 p-4 rounded-2xl mb-2 text-blue-600">
+                    <i class="fas fa-microchip text-xl"></i>
+                  </span>
+                  <span class="text-xs sm:text-sm font-bold text-center">
+                    {{feature_cpu}}
+                  </span>
+                </div>
+
+                <div class="flex flex-col items-center w-20">
+                  <span class="bg-blue-50 p-4 rounded-2xl mb-2 text-blue-600">
+                    <i class="fas fa-memory text-xl"></i>
+                  </span>
+                  <span class="text-xs sm:text-sm font-bold">
+                    {{feature_ram}}
+                  </span>
+                </div>
+
+                <div class="flex flex-col items-center w-20">
+                  <span class="bg-blue-50 p-4 rounded-2xl mb-2 text-blue-600">
+                    <i class="fas fa-hdd text-xl"></i>
+                  </span>
+                  <span class="text-xs sm:text-sm font-bold">
+                    {{feature_storage}}
+                  </span>
+                </div>
+
+                <div class="flex flex-col items-center w-20">
+                  <span class="bg-blue-50 p-4 rounded-2xl mb-2 text-blue-600">
+                    <i class="fas fa-expand-arrows-alt text-xl"></i>
+                  </span>
+                  <span class="text-xs sm:text-sm font-bold">
+                    {{feature_case}}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detailed Features Section -->
+        <section class="space-y-24 mb-24">
+          <!-- Feature 1: Performance -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div class="order-2 md:order-1">
+              <h3 class="text-2xl font-bold mb-4">{{feature1_title}}</h3>
+              <p class="text-gray-600 mb-6 text-lg">{{feature1_text}}</p>
+              <ul class="space-y-3">
+                {{feature1_bullets_html}}
+              </ul>
+            </div>
+            <div class="order-1 md:order-2">
+              <!-- <img src="{{feature1_image}}" alt="{{feature1_image_alt}}" class="feature-img"> -->
+              <img
+                src="https://img.notebooksbilliger.de/images/products/340000/348141/Lenovo_ThinkCentre_M710e_SFF_2.jpg"
+                alt="{{feature1_image_alt}}"
+                class="feature-img"
+              />
+            </div>
+          </div>
+
+          <!-- Feature 2: Ports -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div>
+              <!-- <img src="{{feature2_image}}" alt="{{feature2_image_alt}}" class="feature-img"> -->
+              <img
+                src="https://img.notebooksbilliger.de/images/products/340000/348141/Lenovo_ThinkCentre_M710e_SFF_3.jpg"
+                alt="Porty"
+                class="feature-img"
+              />
+            </div>
+            <div>
+              <h3 class="text-2xl font-bold mb-4">{{feature2_title}}</h3>
+              <p class="text-gray-600 mb-6 text-lg">{{feature2_text}}</p>
+              <div class="grid grid-cols-2 gap-4">{{feature2_ports_html}}</div>
+            </div>
+          </div>
+
+          <!-- Feature 3: Internal -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div class="order-2 md:order-1">
+              <h3 class="text-2xl font-bold mb-4">{{feature3_title}}</h3>
+              <p class="text-gray-600 mb-6 text-lg">{{feature3_text}}</p>
+              <p
+                class="text-gray-600 font-medium italic p-4 bg-gray-100 rounded-2xl border-l-4 border-blue-500"
+              >
+                {{feature3_quote_html}}
+              </p>
+            </div>
+            <div class="order-1 md:order-2">
+              <!-- <img src="{{feature3_image}}" alt="{{feature3_image_alt}}" class="feature-img"> -->
+              <img
+                src="https://img.notebooksbilliger.de/images/products/340000/348141/Lenovo_ThinkCentre_M710e_SFF_4.jpg"
+                alt="Vnitřek"
+                class="feature-img"
+              />
+            </div>
+          </div>
+        </section>
+
+        <!-- Technical Specs Table -->
+        <section class="mb-24">
+          <h3 class="text-3xl font-bold text-center mb-12">
+            Technické specifikace
+          </h3>
+          <div
+            class="overflow-hidden bg-white shadow-sm sm:rounded-3xl border border-gray-100"
+          >
+            <table class="min-w-full divide-y divide-gray-100">
+              <tbody class="divide-y divide-gray-100">
+                <tr>
+                  <td
+                    class="px-4 sm:px-8 py-4 sm:py-5 text-sm font-bold text-gray-900 w-1/3 bg-gray-50/50"
+                  >
+                    Procesor
+                  </td>
+                  <td class="px-4 sm:px-8 py-4 sm:py-5 text-sm text-gray-600">
+                    {{spec_processor}}
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    class="px-4 sm:px-8 py-4 sm:py-5 text-sm font-bold text-gray-900 bg-gray-50/50"
+                  >
+                    Operační paměť
+                  </td>
+                  <td class="px-8 py-5 text-sm text-gray-600">{{spec_ram}}</td>
+                </tr>
+                <tr>
+                  <td
+                    class="px-4 sm:px-8 py-4 sm:py-5 text-sm font-bold text-gray-900 bg-gray-50/50"
+                  >
+                    Úložiště
+                  </td>
+                  <td class="px-8 py-5 text-sm text-gray-600">
+                    {{spec_storage}}
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    class="px-4 sm:px-8 py-4 sm:py-5 text-sm font-bold text-gray-900 bg-gray-50/50"
+                  >
+                    Grafická karta
+                  </td>
+                  <td class="px-8 py-5 text-sm text-gray-600">{{spec_gpu}}</td>
+                </tr>
+                <tr>
+                  <td
+                    class="px-4 sm:px-8 py-4 sm:py-5 text-sm font-bold text-gray-900 bg-gray-50/50"
+                  >
+                    Rozměry
+                  </td>
+                  <td class="px-8 py-5 text-sm text-gray-600">
+                    {{spec_dimensions}}
+                  </td>
+                </tr>
+                <tr>
+                  <td
+                    class="px-4 sm:px-8 py-4 sm:py-5 text-sm font-bold text-gray-900 bg-gray-50/50"
+                  >
+                    Operační systém
+                  </td>
+                  <td class="px-8 py-5 text-sm text-gray-600">{{spec_os}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Suitability Section -->
+        <section
+          class="bg-gray-900 rounded-[2rem] sm:rounded-[3rem] p-6 sm:p-12 mb-16 sm:mb-24 text-white"
+        >
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <h4
+                class="text-2xl font-bold text-green-400 mb-6 flex items-center"
+              >
+                <i class="fas fa-thumbs-up mr-3 text-3xl"></i> Hodí se pro
+              </h4>
+              <ul class="space-y-4 text-gray-300">
+                {{suitability_good_html}}
+              </ul>
+            </div>
+            <div>
+              <h4
+                class="text-2xl font-bold text-red-400 mb-6 flex items-center"
+              >
+                <i class="fas fa-thumbs-down mr-3 text-3xl"></i> Nehodí se pro
+              </h4>
+              <ul class="space-y-4 text-gray-300">
+                {{suitability_bad_html}}
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section class="max-w-4xl mx-auto mb-24">
+          <h3 class="text-3xl font-bold text-center mb-12 text-gray-800">
+            Často kladené dotazy
+          </h3>
+          <div class="space-y-4">{{faq_html}}</div>
+        </section>
+      </div>
+
+      <!-- Footer Trust Info -->
+      <footer class="bg-[#D1214C] text-white py-10 sm:py-16">
+        <div class="max-w-6xl mx-auto px-4 text-center">
+          <p class="text-white mb-6 text-lg">
+            Zajímá Vás, jak u nás probíhá proces repase?
+          </p>
+          <a
+            href="http://kvalita.pocitace24.cz/"
+            target="_blank"
+            class="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-10 rounded-full transition-all hover:scale-105 shadow-lg shadow-blue-500/20"
+          >
+            <i class="fas fa-microscope mr-2"></i> Podívejte se na náš proces
+            kvality
+          </a>
+          <div
+            class="mt-16 text-sm text-white border-t border-white pt-8 flex flex-col md:flex-row justify-between items-center gap-4"
+          >
+            <span
+              >Copyright © 2025 Počítače24.cz - Váš partner pro špičkovou
+              techniku.</span
+            >
+            <div class="flex gap-6">
+              <i
+                class="fab fa-facebook-f hover:text-white transition cursor-pointer"
+              ></i>
+              <i
+                class="fab fa-instagram hover:text-white transition cursor-pointer"
+              ></i>
+              <i
+                class="fab fa-linkedin-in hover:text-white transition cursor-pointer"
+              ></i>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>

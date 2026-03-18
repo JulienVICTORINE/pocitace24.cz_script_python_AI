@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{name}}</title>
+
+    <!-- CDN - Font Awesome CSS -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        color: #111827;
+        font-family:
+          system-ui, "Segoe UI", "Open Sans", "Helvetica Neue", sans-serif;
+        line-height: 1.6;
+      }
+
+      .wrapper {
+        max-width: 1200px;
+        margin: auto;
+        padding: 30px 15px;
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 60px;
+      }
+
+      h1 {
+        font-size: 40px;
+        font-weight: 800;
+        margin-bottom: 20px;
+      }
+
+      header p {
+        font-size: 18px;
+        color: #6b7280;
+        max-width: 600px;
+        margin: auto;
+      }
+
+      /* BADGES */
+      .badges {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 20px;
+      }
+
+      .badge {
+        padding: 6px 12px;
+        border-radius: 9999px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .green {
+        background: #dcfce7;
+        color: #166534;
+      }
+      .blue {
+        background: #dbeafe;
+        color: #1e40af;
+      }
+      .purple {
+        background: #f3e8ff;
+        color: #6b21a8;
+      }
+
+      /* HERO */
+      .card {
+        background: white;
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+        margin-bottom: 80px;
+      }
+
+      h2 {
+        font-size: 28px;
+        text-align: center;
+        margin-bottom: 25px;
+      }
+
+      .feature-icons {
+        display: flex;
+        justify-content: center;
+        gap: 30px;
+        flex-wrap: wrap;
+        margin-top: 30px;
+        border-top: 1px solid #eee;
+        padding-top: 20px;
+      }
+
+      .feature-icon {
+        text-align: center;
+        width: 90px;
+        font-weight: bold;
+      }
+
+      .feature-icon i {
+        background: #eff6ff;
+        padding: 15px;
+        border-radius: 15px;
+        color: #2563eb;
+        margin-bottom: 8px;
+      }
+
+      .bullet-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 8px;
+        list-style: none;
+      }
+
+      .bullet-item i {
+        width: 20px;
+        text-align: center;
+      }
+
+      ul {
+        padding-left: 0;
+      }
+
+      /* GRID */
+      .section {
+        margin-bottom: 100px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+        align-items: center;
+      }
+
+      .grid img {
+        width: 100%;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        background: white;
+        padding: 15px;
+      }
+
+      h3 {
+        font-size: 22px;
+        margin-bottom: 10px;
+      }
+
+      .grid p {
+        color: #6b7280;
+        font-size: 16px;
+        margin-bottom: 15px;
+      }
+
+      .port-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      .port-badge {
+        background: #f3f4f6;
+        padding: 12px;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 700;
+        text-align: center;
+      }
+
+      ul {
+        padding-left: 20px;
+      }
+
+      /* QUOTE */
+      .quote-block {
+        color: #6b7280;
+        font-weight: 500;
+        font-style: italic;
+        padding: 16px;
+        background: #f3f4f6;
+        border-radius: 16px;
+        border-left: 4px solid #3b82f6;
+      }
+
+      /* TABLE */
+      .spec-table {
+        width: 100%;
+        border-radius: 15px;
+        overflow: hidden;
+        background: white;
+        border: 1px solid #eee;
+      }
+
+      .spec-table td {
+        padding: 20px 14px;
+        border-bottom: 1px solid #eee;
+      }
+
+      .spec-table td:first-child {
+        font-weight: bold;
+        background: #f9fafb;
+        width: 35%;
+      }
+
+      /* SUITABILITY */
+      .suitability {
+        background: #111827;
+        color: white;
+        padding: 40px;
+        border-radius: 30px;
+        margin-bottom: 80px;
+      }
+
+      .suitability-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+      }
+
+      .good {
+        color: #4ade80;
+      }
+      .bad {
+        color: #f87171;
+      }
+
+      .suitability-list {
+        list-style: none;
+        padding-left: 0;
+      }
+
+      .icon-good {
+        color: #4ade80;
+      }
+      .icon-bad {
+        color: #f87171;
+      }
+      /* FIN SUITABILITY */
+
+      /* FAQ */
+      .faq h2 {
+        text-align: center;
+        margin-bottom: 40px;
+      }
+
+      .faq-item {
+        background: white;
+        border-radius: 16px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        margin-bottom: 16px;
+        overflow: hidden;
+      }
+
+      .faq-summary {
+        padding: 20px 24px;
+        font-weight: 700;
+        font-size: 16px;
+      }
+
+      .faq-summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .faq-chevron {
+        color: #2563eb;
+        font-size: 20px;
+        transition: transform 0.2s;
+      }
+
+      details[open] .faq-chevron {
+        transform: rotate(180deg);
+      }
+
+      .faq-answer {
+        padding: 0 24px 20px;
+        color: #6b7280;
+        border-top: 1px solid #f3f4f6;
+        padding-top: 16px;
+        line-height: 1.7;
+      }
+      /* FIN POUR LES FAQ */
+
+      /* FOOTER */
+      .end-section {
+        background: #d1214c;
+        color: white;
+        padding: 60px 20px;
+        border-radius: 20px;
+        text-decoration: none;
+        font-weight: bold;
+        text-align: center;
+      }
+
+      .end-section a {
+        display: inline-block;
+        margin-top: 20px;
+        padding: 14px 30px;
+        background: #2563eb;
+        color: white;
+        border-radius: 30px;
+      }
+
+      .end-section a:hover {
+        background: #1e40af;
+      }
+
+      /* RESPONSIVE */
+      @media (max-width: 768px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .suitability-grid {
+          grid-template-columns: 1fr;
+        }
+        h1 {
+          font-size: 28px;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Container -->
+    <div class="wrapper">
+      <!-- HEADER -->
+      <header>
+        <div class="badges">
+          <span class="badge green">✔ Skladem</span>
+          <span class="badge blue">🛡 Záruka 24 měsíců</span>
+          <span class="badge purple">↩ 30 dnů na vrácení</span>
+        </div>
+
+        <h1>{{name}}</h1>
+        <p>{{short_description}}</p>
+      </header>
+
+      <!-- HERO -->
+      <div class="card">
+        <h2>Spolehlivý základ pro Vaše podnikání</h2>
+        {{long_description_html}}
+
+        <div class="feature-icons">
+          <div class="feature-icon">
+            <i class="fas fa-microchip"></i>
+            <div>{{feature_cpu}}</div>
+          </div>
+
+          <div class="feature-icon">
+            <i class="fas fa-memory"></i>
+            <div>{{feature_ram}}</div>
+          </div>
+
+          <div class="feature-icon">
+            <i class="fas fa-hdd"></i>
+            <div>{{feature_storage}}</div>
+          </div>
+
+          <div class="feature-icon">
+            <i class="fas fa-expand-arrows-alt"></i>
+            <div>{{feature_case}}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FEATURE 1 -->
+      <div class="section grid">
+        <div>
+          <h3>{{feature1_title}}</h3>
+          <p>{{feature1_text}}</p>
+          <ul>
+            {{feature1_bullets_html}}
+          </ul>
+        </div>
+        <img
+          src="https://img.notebooksbilliger.de/images/products/340000/348141/Lenovo_ThinkCentre_M710e_SFF_2.jpg"
+        />
+      </div>
+
+      <!-- FEATURE 2 -->
+      <div class="section grid">
+        <img
+          src="https://img.notebooksbilliger.de/images/products/340000/348141/Lenovo_ThinkCentre_M710e_SFF_3.jpg"
+        />
+        <div>
+          <h3>{{feature2_title}}</h3>
+          <p>{{feature2_text}}</p>
+          <div class="port-grid">{{feature2_ports_html}}</div>
+        </div>
+      </div>
+
+      <!-- FEATURE 3 -->
+      <div class="section grid">
+        <div>
+          <h3>{{feature3_title}}</h3>
+          <p>{{feature3_text}}</p>
+          <p class="quote-block"><em>{{feature3_quote_html}}</em></p>
+        </div>
+        <img
+          src="https://img.notebooksbilliger.de/images/products/340000/348141/Lenovo_ThinkCentre_M710e_SFF_4.jpg"
+        />
+      </div>
+
+      <!-- CONFIGURATION -->
+      <div class="section">
+        <h2>Technické specifikace</h2>
+        <table class="spec-table">
+          <tr>
+            <td>Procesor</td>
+            <td>{{spec_processor}}</td>
+          </tr>
+          <tr>
+            <td>RAM</td>
+            <td>{{spec_ram}}</td>
+          </tr>
+          <tr>
+            <td>Úložiště</td>
+            <td>{{spec_storage}}</td>
+          </tr>
+          <tr>
+            <td>GPU</td>
+            <td>{{spec_gpu}}</td>
+          </tr>
+          <tr>
+            <td>Rozměry</td>
+            <td>{{spec_dimensions}}</td>
+          </tr>
+          <tr>
+            <td>OS</td>
+            <td>{{spec_os}}</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- SUITABILITY -->
+      <div class="suitability">
+        <div class="suitability-grid">
+          <div>
+            <h3 class="good">👍 Hodí se pro</h3>
+            <ul class="suitability-list">
+              {{suitability_good_html}}
+            </ul>
+          </div>
+          <div>
+            <h3 class="bad">👎 Nehodí se pro</h3>
+            <ul class="suitability-list">
+              {{suitability_bad_html}}
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- FAQ -->
+      <div class="faq">
+        <h2>Často kladené dotazy</h2>
+        {{faq_html}}
+      </div>
+
+      <!-- END SECTION -->
+      <div class="end-section">
+        <p>Zajímá Vás, jak u nás probíhá proces repase?</p>
+        <a href="http://kvalita.pocitace24.cz/" target="_blank">
+          Podívejte se na náš proces kvality
+        </a>
+      </div>
+    </div>
+  </body>
+</html>
