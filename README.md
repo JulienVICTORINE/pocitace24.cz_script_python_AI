@@ -72,7 +72,7 @@ Chaque description suit une structure stricte :
 ```bash
 .
 ├── merge_descriptions.py      # script principal de génération
-├── products.csv                # données source
+├── products.csv               # données source
 ├── out_html/                  # fichiers HTML individuels
 │   ├── product_1.html
 │   ├── product_2.html
