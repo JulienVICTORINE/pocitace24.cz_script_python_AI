@@ -1260,6 +1260,84 @@ def call_gemini(prompt: str, api_key: str, model: str, max_output_tokens: int, r
 # ============================================================
 
 
+def is_complete_html_fragment(text: str) -> bool:
+    if not text or not text.strip():
+        return False
+
+    stripped = text.strip()
+    if stripped.endswith("<") or stripped.endswith("</") or stripped.count("<") != stripped.count(">"):
+        return False
+
+    tag_pattern = re.compile(r"<(/?)([a-zA-Z0-9]+)(?:\s[^>]*)?>")
+    void_tags = {"br", "hr", "img", "input", "meta", "link"}
+    stack = []
+
+    for match in tag_pattern.finditer(stripped):
+        is_closing = match.group(1) == "/"
+        tag_name = match.group(2).lower()
+        full_tag = match.group(0)
+
+        if tag_name in void_tags or full_tag.endswith("/>"):
+            continue
+        if not is_closing:
+            stack.append(tag_name)
+            continue
+        if not stack or stack[-1] != tag_name:
+            return False
+        stack.pop()
+
+    return not stack
+
+
+def generate_text_with_provider(
+    prompt: str,
+    provider: str,
+    openai_key: str,
+    openai_model: str,
+    gemini_key: str,
+    gemini_model: str,
+    max_output_tokens: int,
+    retries: int,
+    retry_delay: float,
+    expect_html: bool = False,
+    validation_retries: int = 1,
+):
+    current_tokens = max_output_tokens
+
+    for validation_attempt in range(validation_retries + 1):
+        if provider == "openai":
+            try:
+                text = call_openai(
+                    prompt, openai_key, openai_model, current_tokens, retries, retry_delay
+                )
+            except RuntimeError as exc:
+                msg = str(exc)
+                if "insufficient_quota" in msg or "quota" in msg:
+                    if not gemini_key:
+                        raise
+                    text = call_gemini(
+                        prompt, gemini_key, gemini_model, current_tokens, retries, retry_delay
+                    )
+                else:
+                    raise
+        else:
+            text = call_gemini(
+                prompt, gemini_key, gemini_model, current_tokens, retries, retry_delay
+            )
+
+        if not expect_html or is_complete_html_fragment(text):
+            return text
+
+        if validation_attempt < validation_retries:
+            next_tokens = max(current_tokens * 2, current_tokens + 300)
+            print(
+                f"Warning: incomplete HTML fragment detected. Retrying with max_output_tokens={next_tokens}."
+            )
+            current_tokens = next_tokens
+
+    return text
+
+
 def apply_template(template_text: str, values: dict) -> str:
     result = template_text
     for key, value in values.items():
@@ -1360,65 +1438,44 @@ def main():
         else:
             # Le code va construire les prompts et faire les appels API pour générer les descriptions
             prompt = build_prompt(row, specs, args.language)
-            if args.provider == "openai":
-                try:
-                    description_html = call_openai(
-                        prompt, openai_key, openai_model, args.max_output_tokens, args.retries, args.retry_delay
-                    )
-                except RuntimeError as exc:
-                    msg = str(exc)
-                    if "insufficient_quota" in msg or "quota" in msg:
-                        if not gemini_key:
-                            raise
-                        description_html = call_gemini(
-                            prompt, gemini_key, gemini_model, args.max_output_tokens, args.retries, args.retry_delay
-                        )
-                    else:
-                        raise
-            else:
-                description_html = call_gemini(
-                    prompt, gemini_key, gemini_model, args.max_output_tokens, args.retries, args.retry_delay
-                )
+            description_html = generate_text_with_provider(
+                prompt,
+                args.provider,
+                openai_key,
+                openai_model,
+                gemini_key,
+                gemini_model,
+                args.max_output_tokens,
+                args.retries,
+                args.retry_delay,
+                expect_html=True,
+            )
             long_prompt = build_marketing_prompt(row, specs, args.language)
             short_prompt = build_short_prompt(row, specs, args.language)
-            if args.provider == "openai":
-                try:
-                    long_description_html = call_openai(
-                        long_prompt, openai_key, openai_model, args.max_output_tokens, args.retries, args.retry_delay
-                    )
-                except RuntimeError as exc:
-                    msg = str(exc)
-                    if "insufficient_quota" in msg or "quota" in msg:
-                        if not gemini_key:
-                            raise
-                        long_description_html = call_gemini(
-                            long_prompt, gemini_key, gemini_model, args.max_output_tokens, args.retries, args.retry_delay
-                        )
-                    else:
-                        raise
-            else:
-                long_description_html = call_gemini(
-                    long_prompt, gemini_key, gemini_model, args.max_output_tokens, args.retries, args.retry_delay
-                )
-            if args.provider == "openai":
-                try:
-                    short_description_ai = call_openai(
-                        short_prompt, openai_key, openai_model, 120, args.retries, args.retry_delay
-                    )
-                except RuntimeError as exc:
-                    msg = str(exc)
-                    if "insufficient_quota" in msg or "quota" in msg:
-                        if not gemini_key:
-                            raise
-                        short_description_ai = call_gemini(
-                            short_prompt, gemini_key, gemini_model, 120, args.retries, args.retry_delay
-                        )
-                    else:
-                        raise
-            else:
-                short_description_ai = call_gemini(
-                    short_prompt, gemini_key, gemini_model, 120, args.retries, args.retry_delay
-                )
+            long_description_html = generate_text_with_provider(
+                long_prompt,
+                args.provider,
+                openai_key,
+                openai_model,
+                gemini_key,
+                gemini_model,
+                args.max_output_tokens,
+                args.retries,
+                args.retry_delay,
+                expect_html=True,
+            )
+            short_description_ai = generate_text_with_provider(
+                short_prompt,
+                args.provider,
+                openai_key,
+                openai_model,
+                gemini_key,
+                gemini_model,
+                120,
+                args.retries,
+                args.retry_delay,
+                expect_html=False,
+            )
 
         if not description_html:
             continue
