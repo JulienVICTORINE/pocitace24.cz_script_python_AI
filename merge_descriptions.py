@@ -169,6 +169,34 @@ def get_text_property_any(row, label_contains_list):
             return value
     return ""
 
+
+def render_inline_icon(icon_name: str, color: str) -> str:
+    icons = {
+        "bolt": (
+            '<svg viewBox="0 0 24 24" aria-hidden="true">'
+            '<path d="M13 2L5 14h5l-1 8 8-12h-5l1-8z"></path>'
+            "</svg>"
+        ),
+        "tasks": (
+            '<svg viewBox="0 0 24 24" aria-hidden="true">'
+            '<path d="M9 6h11"></path>'
+            '<path d="M9 12h11"></path>'
+            '<path d="M9 18h11"></path>'
+            '<path d="M4 6h.01"></path>'
+            '<path d="M4 12h.01"></path>'
+            '<path d="M4 18h.01"></path>'
+            "</svg>"
+        ),
+        "leaf": (
+            '<svg viewBox="0 0 24 24" aria-hidden="true">'
+            '<path d="M5 21c6-1 12-7 14-14-7 2-13 8-14 14z"></path>'
+            '<path d="M9 15c1.5-.5 3.5-2.5 5-5"></path>'
+            "</svg>"
+        ),
+    }
+    svg = icons.get(icon_name, icons["leaf"])
+    return f'<span class="bullet-glyph" style="color:{color}">{svg}</span>'
+
 # Fonction qui transforme une ligne CSV produit en spécifications structurées prêtes à être affichées dans une fiche produit
 def build_spec_fields(row):
     # ---------------------------------------------------
@@ -433,14 +461,14 @@ def build_feature_section_fields(row, spec_fields):
 
     bullets = []
     if spec_storage and "SSD" in spec_storage:
-        bullets.append(("fas fa-bolt", "Rychlý start systému", "#eab308"))   # jaune
+        bullets.append(("bolt", "Rychlý start systému", "#eab308"))
     if spec_ram and spec_ram != "-":
-        bullets.append(("fas fa-tasks", "Plynulý multitasking", "#3b82f6"))  # bleu
-    bullets.append(("fas fa-leaf", "Svižná odezva aplikací", "#22c55e"))     # vert
+        bullets.append(("tasks", "Plynulý multitasking", "#3b82f6"))
+    bullets.append(("leaf", "Svižná odezva aplikací", "#22c55e"))
     bullets = bullets[:3]
 
     feature1_bullets_html = "".join(
-        f'<li class="bullet-item"><i class="{icon}" style="color:{color}"></i> {label}</li>'
+        f'<li class="bullet-item">{render_inline_icon(icon, color)} {label}</li>'
         for icon, label, color in bullets
     )
     
@@ -779,14 +807,6 @@ def build_prompt(row, specs, language: str) -> str:
 
     specs_lines = "\n".join(f"- {label}: {value}" for label, value in specs)
 
-    # Détermination du type de stockage pour le prompt
-    storage_hint = ""
-    for label, value in specs:
-        label_l = label.lower()
-        if "úložiště" in label_l or "storage" in label_l or "disk" in label_l:
-            storage_hint = value
-            break
-
     prompt = f"""You are a professional copywriter for an online store selling refurbished computers.
 Write a long product description in {language} following EXACTLY the 7-section structure below.
 
@@ -800,6 +820,11 @@ PRODUCT DATA:
 - Short description: {short_desc}
 Key specs:
 {specs_lines}
+
+SOURCE RULE:
+- Use ONLY the data provided above from the CSV row.
+- Do NOT invent any specification, feature, usage, compatibility, accessory, or benefit not supported by the data.
+- If a piece of information is missing in the data, omit it.
 
 OUTPUT FORMAT:
 Return ONLY an HTML fragment. Use <h3>, <p>, <strong>. No <ul>, no <li>, no bullet points, no semicolons (;).
@@ -820,11 +845,12 @@ Do NOT mention the full variant name here.
 Section 3 - Product line / series (2-4 sentences):
 What does this product line mean in practice: stability, office use, quiet operation, compact size.
 Use only "{short_model}" or "this configuration", never the full variant name with specs.
+Do NOT write about what is "in the name" or "part of the name".
 
 Section 4 - Model and configuration (2-4 sentences):
 Link the specific hardware to real-world usage. Mention processor name exactly as given.
-Mention RAM size in GB. Mention storage size in GB and type (SSD SATA or NVMe).
-If NVMe: explain it means fast read/write speeds. Do NOT use semicolons.
+Mention RAM size in GB. Mention storage size in GB and storage type exactly as provided by the data.
+If the storage type explicitly says NVMe, you may mention the fast read/write benefit. Do NOT use semicolons.
 
 Section 5 - Who it suits (1-2 sentences):
 Start with "Convient pour...". Name specific use cases: Office, web, email, accounting, studies, video.
@@ -835,16 +861,17 @@ Start with "Ne convient pas pour..." or "N'est pas destiné à...".
 Do NOT use "not recommended for". Be factual, not judgmental.
 
 Section 7 - Ready to use (1 sentence):
-Mention: tested, Windows 11 Pro (if applicable), 24-month warranty.
+Mention: tested, Windows 11 Pro, 24-month warranty.
 
 STRICT RULES:
-- In sections 2-7, NEVER use the full variant name "{name}" (with config like "- 8 Go - 500 Go").
-  Use only "{short_model}" or "cette configuration".
+- Outside the <h3> title, NEVER use the full variant name "{name}" (with config like "- 8 Go - 500 Go").
+  In the body text, use only "{short_model}", "ThinkCentre M710e" when appropriate, or "cette configuration".
 - No bullet points, no numbered lists, no semicolons.
 - No phrases like "as shown above", "listed parameters", "series name".
 - Do NOT mention price, stock, delivery.
 - Do NOT mention that this text was generated by AI.
 - Each section must bring NEW information, not repeat specs as a list.
+- In suitability paragraphs, use the expressions "Convient pour..." and "Ne convient pas pour...".
 """
     return prompt.strip()
 
@@ -867,7 +894,7 @@ def build_marketing_prompt(row, specs, language: str) -> str:
     specs_lines = "\n".join(f"- {label}: {value}" for label, value in specs)
 
     prompt = f"""You are a professional e-commerce copywriter for a store selling refurbished computers.
-Write a rich, engaging product description in {language} following the 7-section structure below.
+Write a long product description in {language} following EXACTLY the 7-section structure below.
 
 PRODUCT DATA:
 - Full product name (for <h3> title only): {name}
@@ -880,9 +907,15 @@ PRODUCT DATA:
 Key specs:
 {specs_lines}
 
+SOURCE RULE:
+- Use ONLY the data provided above from the CSV row.
+- Do NOT invent any specification, feature, usage, compatibility, accessory, or benefit not supported by the data.
+- If a piece of information is missing in the data, omit it.
+
 OUTPUT FORMAT:
 Return ONLY an HTML fragment. Use <h3>, <p>, <strong>. No <ul>, no <li>, no bullet points, no semicolons (;).
-Write in coherent paragraphs. Commercially engaging but factual tone. No marketing filler.
+Write in coherent sentences and short paragraphs. Professional, calm, understandable tone for non-technical users.
+Be commercial but factual. No marketing filler.
 Do NOT explain what "refurbished" means.
 
 MANDATORY 7-SECTION STRUCTURE:
@@ -899,10 +932,11 @@ Do NOT use the full variant name here.
 Section 3 - Product line (2-4 sentences):
 Explain what this product line offers in everyday use: stability, quiet operation, compact design, office focus.
 Use only "{short_model}" or "this configuration", never the full name with specs.
+Do NOT write about what is "in the name" or "part of the name".
 
 Section 4 - Configuration details (2-4 sentences):
 Connect the hardware to real usage scenarios. Name the exact processor. State RAM in GB.
-State storage in GB and type (SSD SATA or NVMe). If NVMe, mention the speed benefit.
+State storage in GB and storage type exactly as provided by the data. If the storage type explicitly says NVMe, mention the speed benefit.
 No semicolons. No lists.
 
 Section 5 - Ideal users (1-2 sentences):
@@ -914,10 +948,10 @@ Begin with "Ne convient pas pour..." or "N'est pas destiné à..."
 Never use "not recommended for". State clearly and factually.
 
 Section 7 - Ready to use (1 sentence):
-Tested device. Mention Windows 11 Pro if applicable. 24-month warranty included.
+Mention that the device is tested, comes with Windows 11 Pro, and includes a 24-month warranty.
 
 STRICT RULES:
-- In sections 2-7, NEVER write the full variant name "{name}" (the one containing config like "- 8 Go").
+- Outside the <h3> title, NEVER write the full variant name "{name}" (the one containing config like "- 8 Go").
   Always use "{short_model}" or "cette configuration".
 - No bullet points or numbered lists anywhere.
 - No semicolons (;) — always separate items with a period or comma.
@@ -926,49 +960,9 @@ STRICT RULES:
 - Do NOT mention price, stock, or delivery.
 - Do NOT mention that this text was generated by AI.
 - Do NOT write about what is "in the name" or "part of the name".
+- In suitability paragraphs, use the expressions "Convient pour..." and "Ne convient pas pour...".
 """
     return prompt.strip()
-
-
-# def build_long_prompt(row, specs, language: str):
-#     name = row.get("name") or ""
-#     short_desc = strip_html(row.get("shortDescription") or "")
-#     manufacturer = row.get("manufacturer") or ""
-#     condition = row.get("filteringProperty:Stav") or ""
-#     category = guess_category(row)
-#     form_factor = guess_form_factor(row)
-
-#     specs_lines = "\n".join(f"- {label}: {value}" for label, value in specs)
-
-#     prompt = (
-#         "You are a marketing copywriter for an electronics e-commerce store.\n"
-#         f"Write a long product description in {language}.\n"
-#         "Return ONLY an HTML fragment (no <html> or <body> tags).\n"
-#         "Use only <p> and optionally one <ul><li> list (max 4 items). No headings.\n"
-#         "Length: 2 to 4 paragraphs total.\n"
-#         "Content requirements:\n"
-#         "- Explain who the product is for and typical use cases.\n"
-#         "- If it's a laptop, mention portability in general terms without weight/battery claims.\n"
-#         "- If it's a desktop, mention space-saving or placement where appropriate.\n"
-#         "- If GPU is integrated, clarify it suits office/multimedia, not demanding new 3D games.\n"
-#         "- Mention benefits of SSD and RAM in simple terms when present.\n"
-#         "- Do NOT repeat the full configuration as a list.\n"
-#         "- Keep the tone helpful and slightly marketing, but factual.\n"
-#         "Accuracy rules:\n"
-#         "- Avoid claims not supported by the data. If a spec is missing, omit it.\n"
-#         "- Do NOT invent certifications, ports, accessories, or benchmarks.\n"
-#         "- Do not mention price, stock, delivery, or freebies.\n"
-#         "Do not mention that the text was generated by AI.\n\n"
-#         f"Product name: {name}\n"
-#         f"Manufacturer: {manufacturer}\n"
-#         f"Condition: {condition}\n"
-#         f"Category hint: {category}\n"
-#         f"Form factor: {form_factor}\n"
-#         f"Short description: {short_desc}\n"
-#         "Key specs:\n"
-#         f"{specs_lines}\n"
-#     )
-#     return prompt.strip()
 
 
 # Fonction qui va créer un prompt pour générer une description très courte (teaser)
@@ -1006,6 +1000,8 @@ Return ONLY plain text (no HTML, no bullet points).
 Length: 1-2 sentences, maximum 30-40 words.
 
 CONTENT RULES:
+- Use ONLY the data provided above from the CSV row.
+- Do NOT invent any specification, feature, usage, compatibility, accessory, or benefit not supported by the data.
 - Summarize the main use case and 1-2 key benefits.
 - Do NOT list full specs. Mention at most one component if it adds value.
 - Use only "{short_model}" in the text, never the full variant name with configuration.
