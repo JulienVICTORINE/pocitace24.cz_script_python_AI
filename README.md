@@ -72,7 +72,7 @@ Chaque description suit une structure stricte :
 ```bash
 .
 ├── merge_descriptions.py      # script principal de génération
-├── product.csv                # données source
+├── products.csv                # données source
 ├── out_html/                  # fichiers HTML individuels
 │   ├── product_1.html
 │   ├── product_2.html
@@ -111,7 +111,7 @@ Le fichier `template_product.html` sert de modèle pour générer les descriptio
 
 Ce script Python est le moteur de génération des descriptions produits.
 
-- Lit les données depuis `product.csv`
+- Lit les données depuis `products.csv`
 - Transforme les informations techniques en prompts structurés
 - Utilise l’IA pour générer des descriptions longues, professionnelles et conformes aux règles métier
 - Remplit le template `template_product.html` avec le contenu généré
@@ -135,7 +135,7 @@ Fichier HTML final qui contient toutes les descriptions produits générées.
 1. Cloner le repository :
 
 ```bash
-[git clone https://github.com/ton-username/ton-repo.git](https://github.com/JulienVICTORINE/pocitace24.cz_script_python_AI.git)
+git clone https://github.com/JulienVICTORINE/pocitace24.cz_script_python.git
 cd pocitace24.cz_script_python_AI
 ```
 
