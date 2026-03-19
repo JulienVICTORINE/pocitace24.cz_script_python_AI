@@ -437,6 +437,7 @@ def build_port_badges(row, max_items: int = 6):
     return badges
 
 
+# Fonction qui génère les champs de la section "features" d'une fiche produit à partir des spécifications extraites. Elle retourne un dictionnaire prêt à être injecté dans un template HTML
 def build_feature_section_fields(row, spec_fields):
     spec_cpu = spec_fields.get("spec_processor", "")
     spec_ram = spec_fields.get("spec_ram", "")
@@ -445,6 +446,7 @@ def build_feature_section_fields(row, spec_fields):
     form_factor = guess_form_factor(row)
 
     # Feature 1: Performance
+    # On construit une description de la performance qui met en avant les points forts du CPU, de la RAM et du stockage. Si aucune information n'est disponible, on génère une description générique
     perf_bits = []
     if spec_cpu and spec_cpu != "-":
         perf_bits.append(f"Základem výkonu je {spec_cpu}.")
@@ -459,6 +461,7 @@ def build_feature_section_fields(row, spec_fields):
         perf_bits.append("Spolehlivý výkon pro každodenní práci, web a kancelářské aplikace.")
     feature1_text = " ".join(perf_bits)
 
+    # On construit une liste de "bullets" pour les points forts à mettre en avant avec des icônes. Ces points sont choisis en fonction des spécifications disponibles : la présence d'un SSD, la quantité de RAM, etc. Chaque bullet contient une icône, un label et une couleur associée.
     bullets = []
     if spec_storage and "SSD" in spec_storage:
         bullets.append(("bolt", "Rychlý start systému", "#eab308"))
@@ -478,29 +481,36 @@ def build_feature_section_fields(row, spec_fields):
     ) or "https://img.notebooksbilliger.de/images/products/340000/348141/Lenovo_ThinkCentre_M710e_SFF_2.jpg"
 
     # Feature 2: Ports
+    # On génère une description de la connectique qui met en avant les types de ports disponibles. Si aucune information n'est disponible, on génère une description générique
     ports = build_port_badges(row)
     has_video = any(p in ("HDMI", "DisplayPort", "Mini DP", "VGA", "DVI") for p in ports)
     has_usb = any(p.startswith("USB") or p == "USB-C" for p in ports)
     has_lan = "LAN" in ports
     parts = ["Konektorová výbava se liší dle konkrétní konfigurace."]
+    # Si des ports USB sont présents, on met en avant la facilité de connexion de périphériques externes (clavier, souris, imprimante, etc.)
     if has_usb:
         parts.append("USB porty umožní snadné připojení periferií.")
+    # Si des ports vidéo sont présents, on met en avant la possibilité de connecter un ou plusieurs moniteurs externes
     if has_video:
         parts.append("Video výstupy slouží k připojení monitoru.")
+    # Si un port LAN est présent, on met en avant la possibilité d'une connexion internet filaire stable et rapide, idéale pour le télétravail ou les visioconférences
     if has_lan:
         parts.append("LAN zajistí stabilní kabelové připojení.")
     feature2_text = " ".join(parts)
 
+    # On génère une liste de badges HTML pour les ports détectés, qui seront affichés dans la section "features" de la fiche produit. Chaque badge est stylisé avec une classe CSS et contient le nom du port
     feature2_ports_html = "".join(
         f'<span class="port-badge">{html.escape(p)}</span>'
         for p in ports
     )
+    # On tente de récupérer une image spécifique pour illustrer la section des ports. Si aucune image n'est fournie dans les données, on utilise une image générique par défaut
     feature2_image = get_text_property_any(
         row,
         ["feature image 2", "obrázek 2", "obrazek 2", "ports image", "porty"],
     ) or "https://img.notebooksbilliger.de/images/products/340000/348141/Lenovo_ThinkCentre_M710e_SFF_3.jpg"
 
     # Feature 3: Internal / Design
+    # On génère une description du design et de l'intérieur du boîtier qui met en avant les avantages d'un format compact (mini, SFF) ou d'un design pratique pour l'entretien. Si aucune information n'est disponible, on génère une description générique
     if form_factor == "mini":
         internal_text = "Mini provedení je ideální tam, kde je málo místa a chcete čistý pracovní stůl."
     elif form_factor == "sff":
@@ -516,6 +526,7 @@ def build_feature_section_fields(row, spec_fields):
         ["feature image 3", "obrázek 3", "obrazek 3", "internal image", "vnitřek"],
     ) or "https://img.notebooksbilliger.de/images/products/340000/348141/Lenovo_ThinkCentre_M710e_SFF_4.jpg"
 
+    # Retourne un dictionnaire contenant tous les champs nécessaires pour remplir la section "features" d'une fiche produit, avec des titres, des textes descriptifs, des listes de points forts et des images associées à chaque feature
     return {
         "feature1_title": "Výkon, který Vás nezpomalí",
         "feature1_text": feature1_text,
@@ -535,16 +546,22 @@ def build_feature_section_fields(row, spec_fields):
     }
 
 
+# Fonction qui génère les champs de la section "suitability" d'une fiche produit, qui liste les cas d'usage recommandés et déconseillés pour un ordinateur donné en fonction de ses spécifications
+# Elle retourne un dictionnaire prêt à être injecté dans un template HTML
+# Cette fonction transforme des données techniques en recommandations d'utilisation concrètes et compréhensibles pour les clients, en mettant en avant les points forts du produit tout en étant transparent sur ses limites
 def build_suitability_fields(row, spec_fields):
+    # On identifie la catégorie du produit et son format pour adapter les recommandations d'usage en fonction du type de machine
     category = guess_category(row)
     form_factor = guess_form_factor(row)
     spec_gpu = spec_fields.get("spec_gpu", "")
     spec_ram = spec_fields.get("spec_ram", "")
     spec_storage = spec_fields.get("spec_storage", "")
 
+    # En fonction de la catégorie et des spécifications, on construit deux listes : une pour les usages recommandés (good) et une pour les usages déconseillés (bad). Ces listes sont ensuite transformées en HTML avec des icônes pour être affichées dans la fiche produit
     good = []
     bad = []
 
+    # On adapte les recommandations d'usage en fonction de la catégorie du produit (desktop, laptop, monitor) et de son format (mini, sff, etc.) pour mettre en avant les cas d'utilisation les plus pertinents
     if category in ("desktop", "computer"):
         good.extend(
             [
@@ -571,16 +588,20 @@ def build_suitability_fields(row, spec_fields):
                 "Běžné multimediální použití",
             ]
         )
-
+    
+    # En fonction des spécifications techniques, on ajoute des recommandations d'usage spécifiques qui mettent en avant les points forts du produit 
     if spec_storage and "SSD" in spec_storage:
         good.append("Rychlé spuštění systému a aplikací")
     if spec_ram and spec_ram != "-":
         good.append("Plynulý multitasking v běžných aplikacích")
 
+    # Si une carte graphique dédiée est présente, on recommande des usages plus exigeants en ressources graphiques, tout en restant réaliste sur les limites d'une machine d'entrée de gamme ou milieu de gamme
+    # Si aucune carte dédiée n'est présente, on met en avant les limites pour les usages graphiques intensifs
     if spec_gpu and is_dedicated_gpu(spec_gpu):
         good.append("Graficky náročnější aplikace a lehčí hraní")
         bad.append("Profesionální 3D rendering a špičkové herní sestavy")
     else:
+        # Si la machine ne possède pas de GPU dédié, on déconseille les usages graphiques intensifs
         bad.extend(
             [
                 "Nejnovější 3D hry na vysoké detaily",
@@ -588,36 +609,46 @@ def build_suitability_fields(row, spec_fields):
                 "Náročné CAD/3D modelování",
             ]
         )
-
+    
+    # Si la machine possède une quantité de RAM limitée (ex : 4 GB ou moins), on déconseille les usages multitasking intensifs et les applications gourmandes en mémoire
     if category == "monitor":
         bad.append("Práce bez samostatného počítače")
 
+    # Fonction interne pour formater une recommandation d'usage avec une icône "check" pour les usages recommandés et une icône "times" pour les usages déconseillés, en échappant le texte pour éviter les problèmes de sécurité
     def li_check(text):
         return f'<li><span class="icon-good">✔</span> {html.escape(text)}</li>'
 
     def li_times(text):
         return f'<li><span class="icon-bad">✖</span> {html.escape(text)}</li>'
-
+    
+    # On limite le nombre de recommandations affichées pour éviter une section trop longue, en gardant les plus pertinentes
     good = good[:4] if len(good) > 4 else good
     bad = bad[:3] if len(bad) > 3 else bad
 
+    # On génère le HTML final pour les listes d'usages recommandés et déconseillés, qui seront affichées dans la section "suitability" de la fiche produit, avec des icônes visuelles pour renforcer la compréhension et l'impact des recommandations
     return {
         "suitability_good_html": "".join(li_check(t) for t in good),
         "suitability_bad_html": "".join(li_times(t) for t in bad),
     }
 
 # Function for generate the FAQ SECTION
+# Fonction qui génère les champs de la section "FAQ" d'une fiche produit, avec des questions et réponses basées sur les spécifications du produit et les questions fréquemment posées par les clients
 def build_faq_fields(row, spec_fields):
+    # On identifie la catégorie du produit pour adapter les questions et réponses en fonction du type de machine
     category = guess_category(row)
+    # On détermine les labels à utiliser pour "ordinateur" en fonction de la catégorie (notebook pour les laptops, monitor pour les moniteurs, etc.) pour rendre les réponses plus naturelles et adaptées au type de produit
     is_laptop = category == "laptop"
     is_monitor = category == "monitor"
     device_label = "notebook" if is_laptop else "počítač"
     device_label_plural = "notebooky" if is_laptop else "počítače"
+    # Cas particulier pour les moniteurs
     if is_monitor:
         device_label = "monitor"
         device_label_plural = "monitory"
+    # On récupère le système d'exploitation pour adapter les réponses liées à Windows en fonction de la présence ou non d'un OS installé sur la machine, et éviter de mentionner des licences Windows pour les moniteurs qui n'en ont pas besoin
     spec_os = (spec_fields.get("spec_os") or "").lower()
 
+    # Fonction interne pour formater une question et sa réponse dans un bloc HTML structuré, en échappant le texte de la question pour éviter les problèmes de sécurité, et en permettant d'inclure du HTML dans la réponse pour mettre en forme les informations importantes
     def details_block(question, answer):
         return (
             '<div class="faq-item">'
@@ -625,9 +656,13 @@ def build_faq_fields(row, spec_fields):
             f'<div class="faq-answer">{answer}</div>'
             "</div>"
         )
-
+    
+    # Liste qui contiendra les blocs de questions/réponses à afficher dans la section FAQ de la fiche produit
     faq_items = []
 
+    #-----------------------------------------------------------------------------
+    # Question 1 : Garantie
+    #-----------------------------------------------------------------------------
     faq_items.append(
         details_block(
             "Jaká je záruka na repasované počítače a notebooky?",
@@ -637,6 +672,9 @@ def build_faq_fields(row, spec_fields):
         )
     )
 
+    #-----------------------------------------------------------------------------
+    # Question 2 : Baterie (uniquement pour les laptops)
+    #-----------------------------------------------------------------------------
     if is_laptop:
         faq_items.append(
             details_block(
@@ -647,11 +685,13 @@ def build_faq_fields(row, spec_fields):
                 "12 měsíců na kapacitu článků</strong>."
             )
         )
+        # Contenu de la question 3 pour les laptops : ce qui est inclus dans le pack
         pack_answer = (
             "Pokud objednáte <strong>repasovaný notebook</strong>, je součástí balení <strong>notebook</strong>, "
             "<strong>napájecí adaptér</strong> a přívodní kabel pro zapojení nabíječky do zásuvky."
         )
     else:
+        # Contenu de la question 3 pour les desktops et les moniteurs : ce qui est inclus dans le pack
         pack_answer = (
             "Pokud objednáte <strong>repasovaný notebook</strong>, je součástí balení <strong>notebook</strong>, <strong>napájecí adaptér</strong> a přívodní kabel pro zapojení nabíječky do zásuvky."
             "<br><br>"
@@ -659,8 +699,15 @@ def build_faq_fields(row, spec_fields):
             "<br><br>"
             "Pokud objednáte <strong>repasovaný monitor</strong>, je součástí balení <strong>monitor</strong> vč. stojanu, <strong>napájecí kabel</strong> a <strong>video kabel</strong> k propojení monitoru s počítačem."
         )
+
+    #-----------------------------------------------------------------------------
+    # Question 3 : Contenu du pack
+    #-----------------------------------------------------------------------------
     faq_items.append(details_block("Co je součástí balení?", pack_answer))
 
+    #-----------------------------------------------------------------------------
+    # Question 4 : Licence Windows
+    #-----------------------------------------------------------------------------
     faq_items.append(
         details_block(
             "Kde najdu licenční klíč k Windows? Co je to elektronická licence?",
@@ -686,10 +733,15 @@ def build_faq_fields(row, spec_fields):
         )
     )
 
+    #-----------------------------------------------------------------------------
+    # Question 5 : Upgrade de la RAM ou du stockage
+    #-----------------------------------------------------------------------------
     upgrade_answer = (
+        # Pour les moniteurs, la question de l'upgrade de la RAM ou du stockage n'est pas pertinente, donc on indique que cela ne s'applique pas
         "U monitorů se operační paměť ani disk nevyměňuje, takže se tento bod netýká."
         if is_monitor
         else
+        # Pour les desktops et les laptops, on indique que l'upgrade de la RAM ou du stockage est possible sans perdre la garantie, mais que la garantie ne couvre que les composants achetés chez nous
         f"Ano, můžete. <strong>Otevřením počítače a výměnou komponent nepřicházíte o záruku</strong>. I nadále však platí, že se záruka vztahuje jen na hardware zakoupený v našem obchodě. Pokud si například v notebooku vyměníte pevný disk za nový, který vám po chvíli přestane fungovat, nebudeme vám moct tento nový rozbitý disk vyreklamovat."
     )
     faq_items.append(
@@ -700,6 +752,9 @@ def build_faq_fields(row, spec_fields):
         )
     )
 
+    # -----------------------------------------------------------------------------
+    # Question 6 : définition de ce qu'est un ordinateur ou un notebook reconditionné, et d'où proviennent les machines destinées à être reconditionnées, pour rassurer les clients sur la qualité des produits et l'origine des machines
+    #-----------------------------------------------------------------------------
     faq_items.append(
         details_block(
             "Co je to repas?",
@@ -711,6 +766,9 @@ def build_faq_fields(row, spec_fields):
         )
     )
 
+    # -----------------------------------------------------------------------------
+    # Question 7 : d'où proviennent les machines destinées à être reconditionnées
+    #-----------------------------------------------------------------------------
     faq_items.append(
         details_block(
             "Kde nakupujete počítače a notebooky určené k repasi?",
@@ -721,6 +779,7 @@ def build_faq_fields(row, spec_fields):
         )
     )
 
+    # Retourne un dictionnaire contenant le champ "faq_html" qui contient le HTML complet de la section FAQ, avec toutes les questions et réponses formatées et prêtes à être injectées dans la fiche produit
     return {"faq_html": "".join(faq_items)}
 
 
@@ -761,17 +820,24 @@ def guess_category(row):
     # Si aucun indice clair n'est trouvé → catégorie générique
     return "computer"
 
-
+# Fonction qui va essayer de deviner le format d'un ordinateur (mini, sff, etc.) en se basant sur le nom et les spécifications, pour adapter les descriptions et recommandations d'usage en fonction du type de machine
 def guess_form_factor(row):
+    # On récupère le nom du produit et la valeur de la colonne "Typ skříně" (type de boîtier), puis on supprime les accents et on convertit en minuscules pour faciliter la détection de mots-clés indiquant un format compact
     name = deaccent((row.get("name") or "")).lower()
     case_type = deaccent((row.get("filteringProperty:Typ skříně") or "")).lower()
+    # On combine le nom et le type de boîtier pour avoir plus de chances de détecter des indices sur le format de la machine
     hay = " ".join([name, case_type])
+    # On vérifie la présence de mots-clés indiquant un format mini ou très compact, puis de mots-clés indiquant un format SFF (Small Form Factor), en respectant l'ordre de priorité pour éviter les confusions
     if any(token in hay for token in ["mini", "tiny", "micro", "mff", "usff"]):
         return "mini"
+    # Si aucun format mini n'est détecté, on vérifie la présence de mots-clés indiquant un format SFF, qui est plus grand que le mini mais toujours compact
     if any(token in hay for token in ["sff"]):
         return "sff"
+    # Si aucun indice de format compact n'est trouvé, on retourne une chaîne vide pour indiquer un format standard
     return ""
 
+
+# Fonction qui extrait le nom court du modèle à partir du nom complet, en retirant la partie configuration (ex: " - 8 Go - 500 Go...") pour éviter de répéter les spécifications dans le corps du texte et respecter la règle de ne pas utiliser le nom complet de la variante dans les descriptions
 def _extract_short_model_name(row) -> str:
     """
     Extrait le nom court du modèle (ex: "Lenovo ThinkCentre M710e")
@@ -779,11 +845,13 @@ def _extract_short_model_name(row) -> str:
     Utilisé dans les prompts pour respecter la règle : ne pas répéter
     le nom complet de la variante dans le corps du texte.
     """
+    # Récupère le nom complet du produit à partir de la colonne "name", ou une chaîne vide si la colonne est absente ou vide
     full_name = row.get("name") or ""
-    # On coupe au premier tiret suivi d'un chiffre ou "Go" pour retirer la config
+    # On utilise un regex pour couper au premier tiret suivi d'un chiffre ou "Go" pour retirer la config
     m = re.match(r"^(.*?)\s*[-–]\s*\d", full_name)
     if m:
         return m.group(1).strip()
+    # Si aucun tiret suivi d'une config n'est trouvé, on retourne le nom complet tel quel, en supprimant les espaces superflus
     return full_name.strip()
 
 
@@ -1142,6 +1210,7 @@ def generate_offline_long_description(row, specs_fields, language: str):
     return "".join(parts)
 
 
+# Fonction qui va générer un teaser court sans IA, en se basant sur les spécifications clés pour mettre en avant les avantages principaux de la machine
 def generate_offline_short_description(row, specs_fields, language: str):
     """Génère un teaser court sans IA."""
     name = row.get("name") or ""
@@ -1218,7 +1287,7 @@ def call_openai(prompt: str, api_key: str, model: str, max_output_tokens: int, r
     return "\n".join(parts).strip()
 
 
-# Fonction qui faire un appel API celui de Gemini de Google
+# Fonction qui va faire un appel API à Gemini de Google
 def call_gemini(prompt: str, api_key: str, model: str, max_output_tokens: int, retries: int = 2, retry_delay: float = 2.0):
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
     body = {
@@ -1260,6 +1329,7 @@ def call_gemini(prompt: str, api_key: str, model: str, max_output_tokens: int, r
 # ============================================================
 
 
+# Fonction qui va vérifier si le texte généré est un fragment HTML complet (toutes les balises ouvertes sont fermées), pour éviter les coupures brutales dans les descriptions et améliorer la qualité du rendu final
 def is_complete_html_fragment(text: str) -> bool:
     if not text or not text.strip():
         return False
@@ -1289,6 +1359,7 @@ def is_complete_html_fragment(text: str) -> bool:
     return not stack
 
 
+# Fonction qui va générer le texte de la description en appelant l'API du provider choisi, avec une logique de fallback et de validation pour s'assurer d'obtenir un fragment HTML complet et de bonne qualité, même en cas de coupure ou d'erreur temporaire
 def generate_text_with_provider(
     prompt: str,
     provider: str,
@@ -1338,25 +1409,26 @@ def generate_text_with_provider(
     return text
 
 
+# Fonction qui va appliquer les valeurs d'un dictionnaire dans un template HTML en remplaçant les placeholders du type {{key}} par les valeurs correspondantes, pour générer les pages HTML finales à partir du template et des données produits
 def apply_template(template_text: str, values: dict) -> str:
     result = template_text
     for key, value in values.items():
         result = result.replace(f"{{{{{key}}}}}", value)
     return result
 
-
+# Fonction qui va aplatir un texte HTML en supprimant les retours à la ligne et les espaces superflus, pour faciliter la validation de la complétude du fragment HTML généré par l'IA
 def flatten_html(text: str) -> str:
     if not text:
         return ""
     return text.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "")
 
-
+# Fonction qui va extraire les paragraphes d'un texte HTML en utilisant une expression régulière pour trouver les balises <p>, et retourner une liste de paragraphes nettoyés, pour construire l'extrait "hero" à partir des 1-2 premiers paragraphes de la description longue
 def extract_paragraphs_from_html(text: str):
     if not text:
         return []
     return [p.strip() for p in re.findall(r"<p\b[^>]*>.*?</p>", text, flags=re.IGNORECASE | re.DOTALL) if p.strip()]
 
-
+# Fonction qui va construire un extrait "hero" à partir des 1-2 premiers paragraphes d'une description longue HTML, pour mettre en avant les avantages principaux de la machine dans les zones de mise en avant (bannières, listes de produits, etc.) et améliorer le taux de clic
 def build_hero_excerpt_html(long_description_html: str) -> str:
     paragraphs = extract_paragraphs_from_html(long_description_html)
     if not paragraphs:
@@ -1364,10 +1436,18 @@ def build_hero_excerpt_html(long_description_html: str) -> str:
     return "\n".join(paragraphs[:2]).strip()
 
 
+def build_html_block_fragment(name: str, long_description_html: str, description_html: str) -> str:
+    title_html = f"<h3><strong>{html.escape((name or '').strip())}</strong></h3>"
+    source_html = (long_description_html or "").strip() or (description_html or "").strip()
+    paragraphs = extract_paragraphs_from_html(source_html)
+    body_html = "\n".join(paragraphs) if paragraphs else source_html
+    return f"{title_html}\n{body_html}".strip()
+
+# Fonction qui va normaliser les espaces dans un texte en remplaçant les séquences d'espaces, de tabulations et de retours à la ligne par un seul espace, et en supprimant les espaces en début et fin de texte, pour améliorer la qualité du rendu final et éviter les problèmes de mise en page liés aux espaces superflus
 def normalize_whitespace(text: str) -> str:
     return re.sub(r"\s+", " ", (text or "")).strip()
 
-
+# Fonction qui va construire la description courte à partir du teaser généré par l'IA, avec une logique de validation pour éviter les descriptions trop courtes ou génériques qui n'apporteraient pas de valeur ajoutée par rapport au titre et aux spécifications, et en utilisant une description offline en fallback si nécessaire
 def build_display_short_description(row, specs_fields, short_description_ai: str) -> str:
     candidate = normalize_whitespace(strip_html(short_description_ai or ""))
     fallback = normalize_whitespace(generate_offline_short_description(row, specs_fields, ""))
@@ -1386,7 +1466,7 @@ def build_display_short_description(row, specs_fields, short_description_ai: str
         return fallback
     return candidate
 
-
+# Fonction principale qui va orchestrer le processus de lecture du CSV, génération des descriptions, application du template et écriture des fichiers de sortie, avec une logique de reprise en cas d'interruption et de validation pour garantir la qualité des descriptions générées
 def main():
     parser = argparse.ArgumentParser(description="Generate product descriptions via AI and build HTML pages.")
     parser.add_argument("--input", default="products.csv", help="Input CSV file.")
@@ -1550,7 +1630,11 @@ def main():
             "<!-- CODE: {code} | NAME: {name} -->\n{block}\n".format(
                 code=code.strip(),
                 name=name.strip(),
-                block=html_out.strip(),
+                block=build_html_block_fragment(
+                    name=name,
+                    long_description_html=row.get("long_description") or "",
+                    description_html=description_html,
+                ),
             )
         )
 
@@ -1594,6 +1678,6 @@ def main():
         f"CSV import: {args.csv_import_out}."
     )
 
-
+# Point d'entrée du script
 if __name__ == "__main__":
     main()
