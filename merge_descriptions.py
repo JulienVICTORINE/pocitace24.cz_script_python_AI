@@ -1351,6 +1351,42 @@ def flatten_html(text: str) -> str:
     return text.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "")
 
 
+def extract_paragraphs_from_html(text: str):
+    if not text:
+        return []
+    return [p.strip() for p in re.findall(r"<p\b[^>]*>.*?</p>", text, flags=re.IGNORECASE | re.DOTALL) if p.strip()]
+
+
+def build_hero_excerpt_html(long_description_html: str) -> str:
+    paragraphs = extract_paragraphs_from_html(long_description_html)
+    if not paragraphs:
+        return ""
+    return "\n".join(paragraphs[:2]).strip()
+
+
+def normalize_whitespace(text: str) -> str:
+    return re.sub(r"\s+", " ", (text or "")).strip()
+
+
+def build_display_short_description(row, specs_fields, short_description_ai: str) -> str:
+    candidate = normalize_whitespace(strip_html(short_description_ai or ""))
+    fallback = normalize_whitespace(generate_offline_short_description(row, specs_fields, ""))
+
+    if not candidate:
+        return fallback
+
+    too_short = len(candidate) < 35
+    generic_values = {
+        normalize_whitespace(strip_html(row.get("manufacturer") or "")),
+        normalize_whitespace(_extract_short_model_name(row)),
+    }
+    is_generic = candidate in generic_values or len(candidate.split()) <= 2
+
+    if too_short or is_generic:
+        return fallback
+    return candidate
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generate product descriptions via AI and build HTML pages.")
     parser.add_argument("--input", default="products.csv", help="Input CSV file.")
@@ -1483,13 +1519,18 @@ def main():
         row["description"] = description_html
         row["long_description"] = long_description_html or ""
         row["short_description_ai"] = strip_html((short_description_ai or "").strip())
+        hero_excerpt_html = build_hero_excerpt_html(row["long_description"])
+        display_short_description = build_display_short_description(
+            row, spec_fields, row["short_description_ai"]
+        )
 
         # Le code va ensuite appliquer les descriptions générées dans le template HTML et écrire les fichiers de sortie (Préparer les valeurs pour le template, en échappant les champs nécessaires)
         values = {
             "name": html.escape(row.get("name") or ""),
-            "short_description": row.get("short_description_ai") or row.get("shortDescription") or "",
+            "short_description": html.escape(display_short_description),
             "description_html": description_html,
             "long_description_html": row.get("long_description") or "",
+            "hero_excerpt_html": hero_excerpt_html,
             "feature_cpu": spec_fields.get("feature_cpu", ""),
             "feature_ram": spec_fields.get("feature_ram", ""),
             "feature_storage": spec_fields.get("feature_storage", ""),
