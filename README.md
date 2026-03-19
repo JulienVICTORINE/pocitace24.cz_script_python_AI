@@ -154,6 +154,48 @@ GEMINI_API_KEY=your_api_key
 
 ---
 
+## ▶️ Utilisation via le terminal
+
+Le script merge_descriptions.py peut être exécuté avec différentes options selon le mode souhaité :
+
+1️⃣ Avec l’API Gemini :
+
+```bash
+python merge_descriptions.py --input products.csv --provider gemini --limit 1 --overwrite --max-output-tokens 1200
+```
+
+2️⃣ Avec l’API OpenAI / ChatGPT :
+
+```bash
+python merge_descriptions.py --input products.csv --provider openai --limit 1 --overwrite --max-output-tokens 1200
+```
+
+3️⃣ Mode hors ligne (offline) :
+
+```bash
+python merge_descriptions.py --input products.csv --offline --overwrite --limit 1
+```
+
+## ⚠️ Remarques importantes
+
+* L’utilisation des API Gemini ou OpenAI peut générer un temps d’attente si trop de requêtes sont envoyées simultanément.
+* L’option `--limit` définit le nombre de produits à générer en une seule exécution et peut être ajustée selon vos besoins.
+* `--overwrite` écrase les fichiers existants dans `out_html/` ou `produkt-ntb.html`.
+* `--max-output-tokens` limite la longueur de la sortie IA pour chaque produit.
+
+## Options disponibles 
+
+| Option               | Description                                     |
+|----------------------|-------------------------------------------------|
+| `--input`              | Fichier CSV source (`products.csv`)            |
+| `--provider`           | Choix du moteur IA (`gemini` ou `openai`)     |
+| `--offline`            | Mode hors ligne (pas d’API)                   |
+| `--limit`              | Nombre de produits à générer                  |
+| `--overwrite`          | Écrase les fichiers existants                  |
+| `--max-output-tokens`  | Nombre maximum de tokens générés par produit  |
+
+---
+
 ## 💡 Cas d’usage
 
 * Boutiques e-commerce (Shoptet, Prestashop, Shopify…)
