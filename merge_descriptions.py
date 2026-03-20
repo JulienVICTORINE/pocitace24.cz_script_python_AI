@@ -161,7 +161,7 @@ def get_text_property(row, label_contains: str):
     # Si aucune propriété correspondante n'est trouvée
     return ""
 
-
+# Fonction qui va rechercher une propriété spécifique dans les colonnes textProperty en testant plusieurs labels possibles
 def get_text_property_any(row, label_contains_list):
     for label in label_contains_list:
         value = get_text_property(row, label)
@@ -169,7 +169,8 @@ def get_text_property_any(row, label_contains_list):
             return value
     return ""
 
-
+# Fonction qui va générer un badge HTML pour un port donné, avec une icône spécifique en fonction du type de port
+# Cette fonction utilise des SVG inline pour les icônes et applique une couleur de fond différente selon le type de port (USB, HDMI, LAN, etc.)
 def render_inline_icon(icon_name: str, color: str) -> str:
     icons = {
         "bolt": (
@@ -198,10 +199,13 @@ def render_inline_icon(icon_name: str, color: str) -> str:
     return f'<span class="bullet-glyph" style="color:{color}">{svg}</span>'
 
 
+# Fonction qui va générer un badge HTML pour un port donné, avec une icône spécifique en fonction du type de port
 def render_port_badge_html(port_label: str) -> str:
     port_text = (port_label or "").strip()
     port_upper = deaccent(port_text).upper()
 
+    # Cette partie associe une icône SVG spécifique à chaque type de port en fonction de son nom
+    # Elle utilise des conditions pour détecter les ports USB, DisplayPort, HDMI, LAN, audio, etc. et retourne un badge HTML stylisé avec l'icône correspondante et le nom du port
     if port_upper.startswith("USB"):
         icon_svg = (
             '<svg viewBox="0 0 24 24" aria-hidden="true">'
@@ -435,6 +439,96 @@ def build_spec_fields(row):
         "feature_storage": feature_storage,
         "feature_case": feature_case,
     }
+
+
+def normalize_fact_text(text: str) -> str:
+    if not text:
+        return ""
+    value = deaccent(strip_html(text)).lower()
+    value = value.replace("×", "x")
+    value = re.sub(r"\s+", " ", value).strip()
+    return value
+
+
+def build_grounding_fact_block(row, spec_fields) -> str:
+    fact_lines = []
+
+    def add_fact(label: str, value: str):
+        clean_value = (value or "").strip()
+        if clean_value and clean_value != "-":
+            fact_lines.append(f"- {label}: {clean_value}")
+
+    add_fact("Short model", _extract_short_model_name(row))
+    add_fact("Manufacturer", row.get("manufacturer") or "")
+    add_fact("Category", guess_category(row))
+    add_fact("Form factor", guess_form_factor(row))
+    add_fact("Processor", spec_fields.get("spec_processor", ""))
+    add_fact("RAM", spec_fields.get("spec_ram", ""))
+    add_fact("Storage", spec_fields.get("spec_storage", ""))
+    add_fact("GPU", spec_fields.get("spec_gpu", ""))
+    add_fact("Dimensions", spec_fields.get("spec_dimensions", ""))
+    add_fact("Operating system", spec_fields.get("spec_os", ""))
+    return "\n".join(fact_lines)
+
+
+def build_required_factual_anchors(row, spec_fields):
+    anchors = []
+    for value in (
+        _extract_short_model_name(row),
+        spec_fields.get("spec_processor", ""),
+        spec_fields.get("spec_ram", ""),
+        spec_fields.get("spec_storage", ""),
+    ):
+        clean_value = (value or "").strip()
+        if clean_value and clean_value != "-":
+            anchors.append(clean_value)
+    return anchors
+
+
+def validate_ai_grounded_html(text: str, row, spec_fields) -> bool:
+    if not text or not is_complete_html_fragment(text):
+        return False
+
+    normalized_text = normalize_fact_text(text)
+    if not normalized_text:
+        return False
+
+    for anchor in build_required_factual_anchors(row, spec_fields):
+        if normalize_fact_text(anchor) not in normalized_text:
+            return False
+
+    forbidden_terms = [
+        "touchscreen", "oled", "thunderbolt", "bluetooth", "wi-fi 6",
+        "wifi 6", "backlit keyboard", "fingerprint reader", "sd card reader",
+    ]
+    source_facts = normalize_fact_text(build_grounding_fact_block(row, spec_fields))
+    for term in forbidden_terms:
+        if term in normalized_text and term not in source_facts:
+            return False
+
+    return True
+
+
+def validate_ai_grounded_teaser(text: str, row, spec_fields) -> bool:
+    candidate = normalize_whitespace(strip_html(text or ""))
+    if not candidate:
+        return False
+
+    normalized_candidate = normalize_fact_text(candidate)
+    source_facts = normalize_fact_text(build_grounding_fact_block(row, spec_fields))
+    short_model = normalize_fact_text(_extract_short_model_name(row))
+    if short_model and short_model not in normalized_candidate:
+        return False
+
+    forbidden_terms = [
+        "touchscreen", "oled", "thunderbolt", "bluetooth", "wi-fi 6",
+        "wifi 6", "backlit keyboard", "fingerprint reader", "sd card reader",
+    ]
+    for term in forbidden_terms:
+        if term in normalized_candidate and term not in source_facts:
+            return False
+
+    return True
 
 
 def normalize_boolish(value: str) -> bool:
@@ -926,7 +1020,7 @@ def _extract_short_model_name(row) -> str:
 # ============================================================
 
 # Fonction qui construit un prompt destiné à un modèle d'IA afin de générer une description produit HTML complète pour une fiche e-commerce
-def build_prompt(row, specs, language: str) -> str:
+def build_prompt(row, specs, language: str, factual_html: str, spec_fields) -> str:
     """
     Prompt principal : génère la description longue structurée en 7 sections
     telles que définies dans la documentation du projet.
@@ -940,9 +1034,10 @@ def build_prompt(row, specs, language: str) -> str:
     short_desc = strip_html(row.get("shortDescription") or "")
 
     specs_lines = "\n".join(f"- {label}: {value}" for label, value in specs)
+    fact_block = build_grounding_fact_block(row, spec_fields)
 
     prompt = f"""You are a professional copywriter for an online store selling refurbished computers.
-Write a long product description in {language} following EXACTLY the 7-section structure below.
+Rewrite the factual base description in {language} into polished e-commerce copy while preserving the facts exactly.
 
 PRODUCT DATA:
 - Full product name (for <h3> title only): {name}
@@ -955,9 +1050,16 @@ PRODUCT DATA:
 Key specs:
 {specs_lines}
 
-SOURCE RULE:
-- Use ONLY the data provided above from the CSV row.
-- Do NOT invent any specification, feature, usage, compatibility, accessory, or benefit not supported by the data.
+FACTS THAT MUST STAY TRUE:
+{fact_block}
+
+FACTUAL BASE DESCRIPTION TO REWRITE:
+{factual_html}
+
+SOURCE RULES:
+- Use ONLY the data provided above and the factual base description.
+- Preserve every concrete fact from the factual base description.
+- Do NOT add any new specification, screen property, battery claim, compatibility claim, accessory, certification, or feature not present in the source data.
 - If a piece of information is missing in the data, omit it.
 
 OUTPUT FORMAT:
@@ -965,53 +1067,21 @@ Return ONLY an HTML fragment. Use <h3>, <p>, <strong>. No <ul>, no <li>, no bull
 Write in coherent sentences and short paragraphs. Professional, calm, understandable tone for non-technical users.
 Do NOT use marketing filler phrases. Do NOT explain what "refurbished" means.
 
-MANDATORY 7-SECTION STRUCTURE:
-
-<h3>{name}</h3>
-
-Section 1 - Introduction (1-2 sentences):
-What is this product and what is its main benefit for the user?
-
-Section 2 - {manufacturer} as a brand (2-4 sentences):
-General presentation of the brand. Focus on reliability of professional PCs.
-Do NOT mention the full variant name here.
-
-Section 3 - Product line / series (2-4 sentences):
-What does this product line mean in practice: stability, office use, quiet operation, compact size.
-Use only "{short_model}" or "this configuration", never the full variant name with specs.
-Do NOT write about what is "in the name" or "part of the name".
-
-Section 4 - Model and configuration (2-4 sentences):
-Link the specific hardware to real-world usage. Mention processor name exactly as given.
-Mention RAM size in GB. Mention storage size in GB and storage type exactly as provided by the data.
-If the storage type explicitly says NVMe, you may mention the fast read/write benefit. Do NOT use semicolons.
-
-Section 5 - Who it suits (1-2 sentences):
-Start with "Convient pour...". Name specific use cases: Office, web, email, accounting, studies, video.
-This must be a use case description, not a repetition of specs.
-
-Section 6 - Who it does NOT suit (1-2 sentences):
-Start with "Ne convient pas pour..." or "N'est pas destiné à...".
-Do NOT use "not recommended for". Be factual, not judgmental.
-
-Section 7 - Ready to use (1 sentence):
-Mention: tested, Windows 11 Pro, 24-month warranty.
-
 STRICT RULES:
+- Keep the same overall factual meaning as the base description. Improve wording only, never facts.
 - Outside the <h3> title, NEVER use the full variant name "{name}" (with config like "- 8 Go - 500 Go").
-  In the body text, use only "{short_model}", "ThinkCentre M710e" when appropriate, or "cette configuration".
+- In the body text, use only "{short_model}" or "cette configuration".
 - No bullet points, no numbered lists, no semicolons.
 - No phrases like "as shown above", "listed parameters", "series name".
 - Do NOT mention price, stock, delivery.
 - Do NOT mention that this text was generated by AI.
-- Each section must bring NEW information, not repeat specs as a list.
-- In suitability paragraphs, use the expressions "Convient pour..." and "Ne convient pas pour...".
+- Keep the suitability paragraphs factual and grounded in the listed hardware only.
 """
     return prompt.strip()
 
 
 # Fonction qui va créer un prompt plus marketing et plus long, avec une mise en page enrichie et des images
-def build_marketing_prompt(row, specs, language: str) -> str:
+def build_marketing_prompt(row, specs, language: str, factual_html: str, spec_fields) -> str:
     """
     Prompt pour la description marketing longue.
     Suit la même structure en 7 sections mais avec un ton légèrement
@@ -1026,9 +1096,10 @@ def build_marketing_prompt(row, specs, language: str) -> str:
     short_desc = strip_html(row.get("shortDescription") or "")
 
     specs_lines = "\n".join(f"- {label}: {value}" for label, value in specs)
+    fact_block = build_grounding_fact_block(row, spec_fields)
 
     prompt = f"""You are a professional e-commerce copywriter for a store selling refurbished computers.
-Write a long product description in {language} following EXACTLY the 7-section structure below.
+Rewrite the factual base description in {language} into polished e-commerce copy while preserving the facts exactly.
 
 PRODUCT DATA:
 - Full product name (for <h3> title only): {name}
@@ -1041,8 +1112,15 @@ PRODUCT DATA:
 Key specs:
 {specs_lines}
 
+FACTS THAT MUST STAY TRUE:
+{fact_block}
+
+FACTUAL BASE DESCRIPTION TO REWRITE:
+{factual_html}
+
 SOURCE RULE:
-- Use ONLY the data provided above from the CSV row.
+- Use ONLY the data provided above and the factual base description.
+- Preserve every concrete fact from the factual base description.
 - Do NOT invent any specification, feature, usage, compatibility, accessory, or benefit not supported by the data.
 - If a piece of information is missing in the data, omit it.
 
@@ -1052,55 +1130,21 @@ Write in coherent sentences and short paragraphs. Professional, calm, understand
 Be commercial but factual. No marketing filler.
 Do NOT explain what "refurbished" means.
 
-MANDATORY 7-SECTION STRUCTURE:
-
-<h3>{name}</h3>
-
-Section 1 - Introduction (1-2 sentences):
-What is this product and what concrete advantage does it bring to the user?
-
-Section 2 - {manufacturer} brand (2-4 sentences):
-Present the brand. Emphasize reliability and longevity of professional-grade hardware.
-Do NOT use the full variant name here.
-
-Section 3 - Product line (2-4 sentences):
-Explain what this product line offers in everyday use: stability, quiet operation, compact design, office focus.
-Use only "{short_model}" or "this configuration", never the full name with specs.
-Do NOT write about what is "in the name" or "part of the name".
-
-Section 4 - Configuration details (2-4 sentences):
-Connect the hardware to real usage scenarios. Name the exact processor. State RAM in GB.
-State storage in GB and storage type exactly as provided by the data. If the storage type explicitly says NVMe, mention the speed benefit.
-No semicolons. No lists.
-
-Section 5 - Ideal users (1-2 sentences):
-Begin with "Convient pour..." List specific use cases: Office apps, web browsing, email,
-accounting software, studies, video calls.
-
-Section 6 - Not suitable for (1-2 sentences):
-Begin with "Ne convient pas pour..." or "N'est pas destiné à..."
-Never use "not recommended for". State clearly and factually.
-
-Section 7 - Ready to use (1 sentence):
-Mention that the device is tested, comes with Windows 11 Pro, and includes a 24-month warranty.
-
 STRICT RULES:
+- Keep the same overall factual meaning as the base description. You may improve wording, but not facts.
 - Outside the <h3> title, NEVER write the full variant name "{name}" (the one containing config like "- 8 Go").
-  Always use "{short_model}" or "cette configuration".
+- Always use "{short_model}" or "cette configuration" in the body text.
 - No bullet points or numbered lists anywhere.
-- No semicolons (;) — always separate items with a period or comma.
-- No empty phrases like "base uniforme", "équipement sélectionné", "prêt à l'emploi".
-  Replace them with a concrete benefit.
+- No semicolons (;).
 - Do NOT mention price, stock, or delivery.
 - Do NOT mention that this text was generated by AI.
 - Do NOT write about what is "in the name" or "part of the name".
-- In suitability paragraphs, use the expressions "Convient pour..." and "Ne convient pas pour...".
 """
     return prompt.strip()
 
 
 # Fonction qui va créer un prompt pour générer une description très courte (teaser)
-def build_short_prompt(row, specs, language: str) -> str:
+def build_short_prompt(row, specs, language: str, factual_teaser: str, spec_fields) -> str:
     """
     Prompt pour le teaser court (1-2 phrases, 30-40 mots max).
     Texte brut sans HTML.
@@ -1114,9 +1158,10 @@ def build_short_prompt(row, specs, language: str) -> str:
     short_desc = strip_html(row.get("shortDescription") or "")
 
     specs_lines = "\n".join(f"- {label}: {value}" for label, value in specs)
+    fact_block = build_grounding_fact_block(row, spec_fields)
 
     prompt = f"""You are a copywriter for a refurbished computer store.
-Write a short product teaser in {language}.
+Rewrite the factual teaser in {language} while preserving its facts exactly.
 
 PRODUCT DATA:
 - Product name: {name}
@@ -1129,12 +1174,19 @@ PRODUCT DATA:
 Key specs:
 {specs_lines}
 
+FACTS THAT MUST STAY TRUE:
+{fact_block}
+
+FACTUAL BASE TEASER:
+{factual_teaser}
+
 OUTPUT FORMAT:
 Return ONLY plain text (no HTML, no bullet points).
 Length: 1-2 sentences, maximum 30-40 words.
 
 CONTENT RULES:
-- Use ONLY the data provided above from the CSV row.
+- Use ONLY the data provided above from the CSV row and the factual base teaser.
+- Preserve the concrete facts from the factual base teaser.
 - Do NOT invent any specification, feature, usage, compatibility, accessory, or benefit not supported by the data.
 - Summarize the main use case and 1-2 key benefits.
 - Do NOT list full specs. Mention at most one component if it adds value.
@@ -1619,7 +1671,10 @@ def main():
             short_description_ai = generate_offline_short_description(row, spec_fields, args.language)
         else:
             # Le code va construire les prompts et faire les appels API pour générer les descriptions
-            prompt = build_prompt(row, specs, args.language)
+            factual_description_html = generate_offline_description(row, specs, args.language)
+            factual_long_description_html = generate_offline_long_description(row, spec_fields, args.language)
+            factual_short_description = generate_offline_short_description(row, spec_fields, args.language)
+            prompt = build_prompt(row, specs, args.language, factual_description_html, spec_fields)
             description_html = generate_text_with_provider(
                 prompt,
                 args.provider,
@@ -1632,8 +1687,12 @@ def main():
                 args.retry_delay,
                 expect_html=True,
             )
-            long_prompt = build_marketing_prompt(row, specs, args.language)
-            short_prompt = build_short_prompt(row, specs, args.language)
+            long_prompt = build_marketing_prompt(
+                row, specs, args.language, factual_long_description_html, spec_fields
+            )
+            short_prompt = build_short_prompt(
+                row, specs, args.language, factual_short_description, spec_fields
+            )
             long_description_html = generate_text_with_provider(
                 long_prompt,
                 args.provider,
@@ -1658,6 +1717,12 @@ def main():
                 args.retry_delay,
                 expect_html=False,
             )
+            if not validate_ai_grounded_html(description_html, row, spec_fields):
+                description_html = factual_description_html
+            if not validate_ai_grounded_html(long_description_html, row, spec_fields):
+                long_description_html = factual_long_description_html
+            if not validate_ai_grounded_teaser(short_description_ai, row, spec_fields):
+                short_description_ai = factual_short_description
 
         if not description_html:
             continue
