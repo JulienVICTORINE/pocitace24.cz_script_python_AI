@@ -169,6 +169,71 @@ def get_text_property_any(row, label_contains_list):
             return value
     return ""
 
+# Fonction qui va extraire des spécifications structurées depuis la description courte du produit (shortDescription)
+def parse_specs_from_short_description(text: str) -> dict:
+    short_desc = strip_html(text or "")
+    parsed = {
+        "processor": "",
+        "ram": "",
+        "storage": "",
+        "display": "",
+        "gpu": "",
+        "os": "",
+        "wifi": False,
+        "bluetooth": False,
+        "webcam": False,
+        "backlit_keyboard": False,
+    }
+    if not short_desc:
+        return parsed
+
+    processor_match = re.search(
+        r"(Intel[®Â]?\s+Core[™â„¢]?\s+[A-Za-z0-9-]+\s+Processor\s*\([^)]+\)|AMD\s+Ryzen\s+[A-Za-z0-9\s-]+\s*\([^)]+\))",
+        short_desc,
+        re.IGNORECASE,
+    )
+    if processor_match:
+        parsed["processor"] = processor_match.group(1).strip()
+
+    ram_match = re.search(r"(\d+\s*GB(?:\s+DDR[345])?)", short_desc, re.IGNORECASE)
+    if ram_match:
+        parsed["ram"] = ram_match.group(1).strip()
+
+    storage_match = re.search(
+        r"(\d+\s*(?:GB|TB)\s+(?:SSD(?:\s*M\.2)?(?:\s*NVMe)?|HDD|eMMC|Flash))",
+        short_desc,
+        re.IGNORECASE,
+    )
+    if storage_match:
+        parsed["storage"] = storage_match.group(1).strip()
+
+    display_match = re.search(
+        r'(\d{1,2}[,.]?\d*\s*[″"]\s*[^,]*?(?:\d{3,4}\s*[×x]\s*\d{3,4}|Full HD|HD|QHD|4K)[^,]*)',
+        short_desc,
+        re.IGNORECASE,
+    )
+    if display_match:
+        parsed["display"] = display_match.group(1).strip()
+
+    gpu_match = re.search(
+        r"(Intel[®Â]?\s+[A-Za-z0-9\s]+Graphics\s*\d*|AMD\s+Radeon\s+[A-Za-z0-9\s]+|NVIDIA\s+GeForce\s+[A-Za-z0-9\s]+)",
+        short_desc,
+        re.IGNORECASE,
+    )
+    if gpu_match:
+        parsed["gpu"] = gpu_match.group(1).strip()
+
+    os_match = re.search(r"(Windows\s+\d+\s*(?:Pro|Home)?)", short_desc, re.IGNORECASE)
+    if os_match:
+        parsed["os"] = os_match.group(1).strip()
+
+    short_desc_ascii = deaccent(short_desc).lower()
+    parsed["wifi"] = "wifi" in short_desc_ascii or "wi-fi" in short_desc_ascii
+    parsed["bluetooth"] = "bluetooth" in short_desc_ascii
+    parsed["webcam"] = "webkamera" in short_desc_ascii or "webcam" in short_desc_ascii
+    parsed["backlit_keyboard"] = "podsvicena klavesnice" in short_desc_ascii or "backlit keyboard" in short_desc_ascii
+    return parsed
+
 # Fonction qui va générer un badge HTML pour un port donné, avec une icône spécifique en fonction du type de port
 # Cette fonction utilise des SVG inline pour les icônes et applique une couleur de fond différente selon le type de port (USB, HDMI, LAN, etc.)
 def render_inline_icon(icon_name: str, color: str) -> str:
@@ -261,6 +326,41 @@ def render_port_badge_html(port_label: str) -> str:
             '<path d="M10 18v2M14 18v2"></path>'
             "</svg>"
         )
+    elif "WIFI" in port_upper or "WI-FI" in port_upper:
+        icon_svg = (
+            '<svg viewBox="0 0 24 24" aria-hidden="true">'
+            '<path d="M4 9a12 12 0 0 1 16 0"></path>'
+            '<path d="M7 12a8 8 0 0 1 10 0"></path>'
+            '<path d="M10 15a4 4 0 0 1 4 0"></path>'
+            '<circle cx="12" cy="18" r="1"></circle>'
+            "</svg>"
+        )
+    elif "BLUETOOTH" in port_upper:
+        icon_svg = (
+            '<svg viewBox="0 0 24 24" aria-hidden="true">'
+            '<path d="M12 3v18"></path>'
+            '<path d="M12 3l6 5-6 4"></path>'
+            '<path d="M12 13l6 5-6 3"></path>'
+            '<path d="M6 8l12 8"></path>'
+            '<path d="M6 16l12-8"></path>'
+            "</svg>"
+        )
+    elif "WEBKAMERA" in port_upper or "WEBCAM" in port_upper or "CAMERA" in port_upper:
+        icon_svg = (
+            '<svg viewBox="0 0 24 24" aria-hidden="true">'
+            '<rect x="4" y="7" width="11" height="10" rx="2"></rect>'
+            '<path d="M15 10l5-2v8l-5-2z"></path>'
+            '<circle cx="9.5" cy="12" r="2"></circle>'
+            "</svg>"
+        )
+    elif "PODSVICENA KLAVESNICE" in port_upper or "BACKLIT KEYBOARD" in port_upper:
+        icon_svg = (
+            '<svg viewBox="0 0 24 24" aria-hidden="true">'
+            '<rect x="3" y="10" width="18" height="7" rx="2"></rect>'
+            '<path d="M6 7v2M10 6v3M14 7v2M18 6v3"></path>'
+            '<path d="M7 13h.01M10 13h.01M13 13h.01M16 13h.01"></path>'
+            "</svg>"
+        )
     elif any(token in port_upper for token in ("AUDIO", "JACK", "MIC", "HEADPHONE", "SLUCHATKA", "AUX")):
         icon_svg = (
             '<svg viewBox="0 0 24 24" aria-hidden="true">'
@@ -288,6 +388,7 @@ def render_port_badge_html(port_label: str) -> str:
 
 # Fonction qui transforme une ligne CSV produit en spécifications structurées prêtes à être affichées dans une fiche produit
 def build_spec_fields(row):
+    parsed_short_specs = parse_specs_from_short_description(row.get("shortDescription") or "")
     # ---------------------------------------------------
     # 1. Construction du champ PROCESSEUR
     # ---------------------------------------------------
@@ -325,6 +426,8 @@ def build_spec_fields(row):
     else:
         # Si on a qu'une seule information, on l'utilise telle quelle
         spec_processor = cpu_model or processor
+    if not spec_processor:
+        spec_processor = parsed_short_specs.get("processor", "")
 
     # ---------------------------------------------------
     # 2. Construction du champ MÉMOIRE RAM
@@ -355,6 +458,8 @@ def build_spec_fields(row):
                         spec_ram = f"{spec_ram} {ram_type}"
             except Exception:
                 pass
+    if not spec_ram:
+        spec_ram = parsed_short_specs.get("ram", "")
 
     # ---------------------------------------------------
     # 3. Construction du champ STOCKAGE
@@ -377,6 +482,9 @@ def build_spec_fields(row):
         else:
             spec_storage = f"{storage_type} (vysoká rychlost čtení i zápisu)"
 
+    if not spec_storage:
+        spec_storage = parsed_short_specs.get("storage", "")
+
     # ---------------------------------------------------
     # 4. Construction du champ CARTE GRAPHIQUE
     # ---------------------------------------------------
@@ -395,6 +503,8 @@ def build_spec_fields(row):
         m = re.search(r"(Intel®?\s+[A-Za-z0-9\s]+Graphics\s*\d*|AMD\s+Radeon\s+[A-Za-z0-9\s]+|NVIDIA\s+GeForce\s+[A-Za-z0-9\s]+)", short_desc, re.IGNORECASE)
         if m:
             gpu = m.group(1).strip()
+    if not gpu:
+        gpu = parsed_short_specs.get("gpu", "")
     spec_gpu = gpu
 
     # ---------------------------------------------------
@@ -414,6 +524,24 @@ def build_spec_fields(row):
     # Récupération du système d'exploitation
     spec_os = get_text_property(row, "operační systém") or get_text_property(row, "opera") or ""
 
+    if not spec_os:
+        spec_os = parsed_short_specs.get("os", "")
+    spec_display = (
+        get_text_property(row, "displej")
+        or get_text_property(row, "display")
+        or parsed_short_specs.get("display", "")
+    )
+    equipment_items = []
+    if parsed_short_specs.get("wifi"):
+        equipment_items.append("WiFi")
+    if parsed_short_specs.get("bluetooth"):
+        equipment_items.append("Bluetooth")
+    if parsed_short_specs.get("webcam"):
+        equipment_items.append("Webkamera")
+    if parsed_short_specs.get("backlit_keyboard"):
+        equipment_items.append("Podsvícená klávesnice")
+    spec_equipment = ", ".join(equipment_items)
+
     # Feature labels for hero icons
     # ---------------------------------------------------
     # 6. Création des labels pour les icônes "features"
@@ -422,10 +550,14 @@ def build_spec_fields(row):
 
     # Normalisation du label RAM
     feature_ram = ram_type or "RAM"
-    if "DDR" in feature_ram:
+    if feature_ram == "RAM" and parsed_short_specs.get("ram"):
+        feature_ram = "DDR4 RAM" if "DDR4" in parsed_short_specs.get("ram", "").upper() else "RAM"
+    if "DDR" in feature_ram and not feature_ram.endswith("RAM"):
         feature_ram = f"{feature_ram} RAM"
     # Normalisation du label stockage
     feature_storage = storage_type or "Úložiště"
+    if not storage_type and spec_storage:
+        feature_storage = spec_storage
     if "NVMe" in feature_storage:
         feature_storage = "NVMe SSD"
     elif "SSD" in feature_storage:
@@ -448,6 +580,8 @@ def build_spec_fields(row):
         "spec_ram": spec_ram or "-",
         "spec_storage": spec_storage or "-",
         "spec_gpu": spec_gpu or "-",
+        "spec_display": spec_display or "-",
+        "spec_equipment": spec_equipment or "-",
         "spec_dimensions": spec_dimensions or "-",
         "spec_os": spec_os or "-",
         "feature_cpu": feature_cpu,
@@ -482,6 +616,8 @@ def build_grounding_fact_block(row, spec_fields) -> str:
     add_fact("RAM", spec_fields.get("spec_ram", ""))
     add_fact("Storage", spec_fields.get("spec_storage", ""))
     add_fact("GPU", spec_fields.get("spec_gpu", ""))
+    add_fact("Display", spec_fields.get("spec_display", ""))
+    add_fact("Equipment", spec_fields.get("spec_equipment", ""))
     add_fact("Dimensions", spec_fields.get("spec_dimensions", ""))
     add_fact("Operating system", spec_fields.get("spec_os", ""))
     return "\n".join(fact_lines)
@@ -560,6 +696,7 @@ def normalize_boolish(value: str) -> bool:
 
 # Fonction qui génère une liste de badges indiquant les ports disponibles sur un ordinateur
 def build_port_badges(row, max_items: int = 6):
+    parsed_short_specs = parse_specs_from_short_description(row.get("shortDescription") or "")
     # ---------------------------------------------------
     # Fonction interne : formater l'affichage d'un port
     # ---------------------------------------------------
@@ -612,6 +749,23 @@ def build_port_badges(row, max_items: int = 6):
         # On limite le nombre total de badges affichées (par défaut : 6) pour éviter une interface trop chargée
         if len(badges) >= max_items:
             break
+
+    extra_badges = []
+    if parsed_short_specs.get("wifi"):
+        extra_badges.append("WiFi")
+    if parsed_short_specs.get("bluetooth"):
+        extra_badges.append("Bluetooth")
+    if parsed_short_specs.get("webcam"):
+        extra_badges.append("Webkamera")
+    if parsed_short_specs.get("backlit_keyboard"):
+        extra_badges.append("Podsvícená klávesnice")
+
+    for label in extra_badges:
+        if label not in badges:
+            badges.append(label)
+        if len(badges) >= max_items:
+            break
+
     # Retourne la liste finale des badges
     return badges
 
@@ -968,6 +1122,10 @@ def guess_category(row):
     # Vérifie si le nom contient des mots-clés indiquant un ordinateur de bureau
     if "thinkcentre" in name_ascii or "desktop" in name_ascii or "pc" in name_ascii:
         return "desktop"
+    if any(token in name_ascii for token in ["latitude", "thinkpad", "elitebook", "probook", "lifebook", "travelmate"]):
+        return "laptop"
+    if any(token in name_ascii for token in ["monitor", "display", "eizo"]):
+        return "monitor"
 
     # Inspect spec keys for hints without hardcoding non-ascii labels
     # Analyse les colonnes de spécifications pour deviner la catégorie sans dépendre des accents ou des langues spécifiques
@@ -987,6 +1145,11 @@ def guess_category(row):
         # Vérifie si la clé indique un processeur
         if "procesor" in key_ascii or "cpu" in key_ascii:
             has_cpu = True
+    parsed_short_specs = parse_specs_from_short_description(row.get("shortDescription") or "")
+    if parsed_short_specs.get("display") and parsed_short_specs.get("processor"):
+        return "laptop"
+    if parsed_short_specs.get("display") and not parsed_short_specs.get("processor"):
+        return "monitor"
     # Si on trouve un écran ET un processeur → probablement un laptop
     if has_display and has_cpu:
         return "laptop"
