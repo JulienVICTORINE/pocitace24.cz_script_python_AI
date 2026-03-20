@@ -197,6 +197,75 @@ def render_inline_icon(icon_name: str, color: str) -> str:
     svg = icons.get(icon_name, icons["leaf"])
     return f'<span class="bullet-glyph" style="color:{color}">{svg}</span>'
 
+
+def render_port_badge_html(port_label: str) -> str:
+    port_text = (port_label or "").strip()
+    port_upper = deaccent(port_text).upper()
+
+    if port_upper.startswith("USB"):
+        icon_svg = (
+            '<svg viewBox="0 0 24 24" aria-hidden="true">'
+            '<path d="M12 3v10"></path>'
+            '<path d="M12 3l-2 2"></path>'
+            '<path d="M12 3l2 2"></path>'
+            '<path d="M12 13l-3 3"></path>'
+            '<path d="M12 13l3 3"></path>'
+            '<circle cx="9" cy="19" r="1.5"></circle>'
+            '<rect x="13.5" y="17.5" width="3" height="3" rx="0.6"></rect>'
+            '<path d="M12 13v8"></path>'
+            "</svg>"
+        )
+    elif "DISPLAYPORT" in port_upper or "MINI DP" in port_upper or port_upper == "DP":
+        icon_svg = (
+            '<svg viewBox="0 0 24 24" aria-hidden="true">'
+            '<rect x="3" y="5" width="18" height="12" rx="2"></rect>'
+            '<path d="M8 21h8"></path>'
+            '<path d="M12 17v4"></path>'
+            '<path d="M9 9h4"></path>'
+            '<path d="M13 9l2 2-2 2"></path>'
+            "</svg>"
+        )
+    elif "HDMI" in port_upper or "VGA" in port_upper or "DVI" in port_upper:
+        icon_svg = (
+            '<svg viewBox="0 0 24 24" aria-hidden="true">'
+            '<rect x="3" y="5" width="18" height="12" rx="2"></rect>'
+            '<path d="M8 21h8"></path>'
+            '<path d="M12 17v4"></path>'
+            "</svg>"
+        )
+    elif "LAN" in port_upper or "RJ-45" in port_upper or "RJ45" in port_upper or "ETHERNET" in port_upper:
+        icon_svg = (
+            '<svg viewBox="0 0 24 24" aria-hidden="true">'
+            '<path d="M6 4h12v6l-2 2v4l-2 2h-4l-2-2v-4l-2-2z"></path>'
+            '<path d="M9 8h.01M12 8h.01M15 8h.01"></path>'
+            '<path d="M10 18v2M14 18v2"></path>'
+            "</svg>"
+        )
+    elif any(token in port_upper for token in ("AUDIO", "JACK", "MIC", "HEADPHONE", "SLUCHATKA", "AUX")):
+        icon_svg = (
+            '<svg viewBox="0 0 24 24" aria-hidden="true">'
+            '<path d="M6 15a6 6 0 0 1 12 0"></path>'
+            '<rect x="4" y="14" width="4" height="6" rx="2"></rect>'
+            '<rect x="16" y="14" width="4" height="6" rx="2"></rect>'
+            '<path d="M8 18a4 4 0 0 0 8 0"></path>'
+            "</svg>"
+        )
+    else:
+        icon_svg = (
+            '<svg viewBox="0 0 24 24" aria-hidden="true">'
+            '<rect x="4" y="7" width="16" height="10" rx="2"></rect>'
+            '<path d="M8 10h8"></path>'
+            '<path d="M8 14h5"></path>'
+            "</svg>"
+        )
+
+    return (
+        '<span class="port-badge">'
+        f'<span class="port-glyph" aria-hidden="true">{icon_svg}</span>'
+        f'<span>{html.escape(port_text)}</span>'
+        "</span>"
+    )
+
 # Fonction qui transforme une ligne CSV produit en spécifications structurées prêtes à être affichées dans une fiche produit
 def build_spec_fields(row):
     # ---------------------------------------------------
@@ -499,10 +568,7 @@ def build_feature_section_fields(row, spec_fields):
     feature2_text = " ".join(parts)
 
     # On génère une liste de badges HTML pour les ports détectés, qui seront affichés dans la section "features" de la fiche produit. Chaque badge est stylisé avec une classe CSS et contient le nom du port
-    feature2_ports_html = "".join(
-        f'<span class="port-badge">{html.escape(p)}</span>'
-        for p in ports
-    )
+    feature2_ports_html = "".join(render_port_badge_html(p) for p in ports)
     # On tente de récupérer une image spécifique pour illustrer la section des ports. Si aucune image n'est fournie dans les données, on utilise une image générique par défaut
     feature2_image = get_text_property_any(
         row,
