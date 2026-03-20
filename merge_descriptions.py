@@ -206,17 +206,33 @@ def render_port_badge_html(port_label: str) -> str:
 
     # Cette partie associe une icône SVG spécifique à chaque type de port en fonction de son nom
     # Elle utilise des conditions pour détecter les ports USB, DisplayPort, HDMI, LAN, audio, etc. et retourne un badge HTML stylisé avec l'icône correspondante et le nom du port
-    if port_upper.startswith("USB"):
+    if "USB-C" in port_upper or "TYPE-C" in port_upper or "USBC" in port_upper:
         icon_svg = (
             '<svg viewBox="0 0 24 24" aria-hidden="true">'
-            '<path d="M12 3v10"></path>'
-            '<path d="M12 3l-2 2"></path>'
-            '<path d="M12 3l2 2"></path>'
-            '<path d="M12 13l-3 3"></path>'
-            '<path d="M12 13l3 3"></path>'
-            '<circle cx="9" cy="19" r="1.5"></circle>'
-            '<rect x="13.5" y="17.5" width="3" height="3" rx="0.6"></rect>'
-            '<path d="M12 13v8"></path>'
+            '<rect x="5" y="8" width="14" height="8" rx="4"></rect>'
+            '<path d="M9 10.5h6"></path>'
+            '<path d="M9 13.5h6"></path>'
+            "</svg>"
+        )
+    elif "USB 3" in port_upper or "USB3" in port_upper:
+        icon_svg = (
+            '<svg viewBox="0 0 24 24" aria-hidden="true">'
+            '<path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7"></path>'
+            '<path d="M7 7h10v6a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z"></path>'
+            '<path d="M10 10h4"></path>'
+            '<path d="M12 15v3"></path>'
+            '<path d="M17.5 9.5l1.5 1.5-1.5 1.5"></path>'
+            '<path d="M19 11h-3"></path>'
+            "</svg>"
+        )
+    elif port_upper.startswith("USB"):
+        icon_svg = (
+            '<svg viewBox="0 0 24 24" aria-hidden="true">'
+            '<path d="M8 7V5.5A1.5 1.5 0 0 1 9.5 4h5A1.5 1.5 0 0 1 16 5.5V7"></path>'
+            '<path d="M7 7h10v6a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2z"></path>'
+            '<path d="M10 10h4"></path>'
+            '<path d="M10 18h4"></path>'
+            '<path d="M12 15v3"></path>'
             "</svg>"
         )
     elif "DISPLAYPORT" in port_upper or "MINI DP" in port_upper or port_upper == "DP":
