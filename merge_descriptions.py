@@ -443,6 +443,8 @@ def render_port_badge_html(port_label: str) -> str:
 
 # Fonction qui transforme une ligne CSV produit en spécifications structurées prêtes à être affichées dans une fiche produit
 def build_spec_fields(row):
+    category = guess_category(row)
+    is_monitor = category == "monitor"
     parsed_short_specs = parse_specs_from_short_description(row.get("shortDescription") or "")
     # ---------------------------------------------------
     # 1. Construction du champ PROCESSEUR
@@ -581,6 +583,14 @@ def build_spec_fields(row):
         or get_text_property(row, "display")
         or parsed_short_specs.get("display", "")
     )
+    spec_resolution = row.get("filteringProperty:Rozlišení displeje") or ""
+    spec_diagonal = row.get("filteringProperty:Úhlopříčka displeje") or ""
+    spec_panel_type = row.get("filteringProperty:Typ displeje") or ""
+    spec_surface = row.get("filteringProperty:Povrch displeje") or ""
+    spec_touch = row.get("filteringProperty:Dotyková obrazovka") or ""
+    spec_pivot = row.get("filteringProperty:Pivot") or ""
+    spec_vesa = row.get("filteringProperty:VESA") or ""
+    spec_usb_hub = row.get("filteringProperty:USB hub") or ""
     equipment_items = []
     if parsed_short_specs.get("wifi"):
         equipment_items.append("WiFi")
@@ -622,6 +632,76 @@ def build_spec_fields(row):
     else:
         feature_case = "Kompaktní"
 
+    def hero_icon_html(svg: str, label: str, extra_class: str = "") -> str:
+        css_class = "feature-icon"
+        if extra_class:
+            css_class = f"{css_class} {extra_class}"
+        return (
+            f'<div class="{css_class}">'
+            '<span class="feature-glyph" aria-hidden="true">'
+            f"{svg}"
+            "</span>"
+            f"<div>{html.escape(label or '-')}</div>"
+            "</div>"
+        )
+
+    if is_monitor:
+        monitor_ports = []
+        for port_label, raw_value in [
+            ("VGA", row.get("filteringProperty:VGA")),
+            ("DVI", row.get("filteringProperty:DVI")),
+            ("HDMI", row.get("filteringProperty:HDMI")),
+            ("DisplayPort", row.get("filteringProperty:DisplayPort")),
+            ("Mini DisplayPort", row.get("filteringProperty:Mini DisplayPort")),
+            ("USB-C", row.get("filteringProperty:USB Type-C™")),
+        ]:
+            if normalize_boolish(raw_value):
+                monitor_ports.append(port_label)
+        ports_label = " / ".join(monitor_ports[:3]) if monitor_ports else (table_dimensions if spec_dimensions else "-")
+
+        hero_feature_icons_html = "".join(
+            [
+                hero_icon_html(
+                    '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"></rect><path d="M8 19h8"></path><path d="M10 17v2M14 17v2"></path></svg>',
+                    spec_resolution or "-",
+                    "feature-icon-nowrap",
+                ),
+                hero_icon_html(
+                    '<svg viewBox="0 0 24 24"><path d="M4 9l5-5M4 9h5M20 15l-5 5M20 15h-5"></path><path d="M20 9l-5-5M20 9h-5M4 15l5 5M4 15h5"></path></svg>',
+                    spec_diagonal or "-",
+                ),
+                hero_icon_html(
+                    '<svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="10" rx="2"></rect><path d="M8 18h8"></path></svg>',
+                    spec_panel_type or "-",
+                ),
+                hero_icon_html(
+                    '<svg viewBox="0 0 24 24"><path d="M7 7h10v6H7z"></path><path d="M10 13v4h4v-4"></path><path d="M9 3h6"></path></svg>',
+                    ports_label,
+                ),
+            ]
+        )
+    else:
+        hero_feature_icons_html = "".join(
+            [
+                hero_icon_html(
+                    '<svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1"></rect><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 15h3M1 9h3M1 15h3"></path><path d="M4 4h2M18 4h2M4 20h2M18 20h2"></path></svg>',
+                    feature_cpu,
+                ),
+                hero_icon_html(
+                    '<svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="8" rx="2"></rect><path d="M7 7v8M11 7v8M15 7v8M19 7v8"></path><path d="M6 17v2M10 17v2M14 17v2M18 17v2"></path></svg>',
+                    feature_ram,
+                ),
+                hero_icon_html(
+                    '<svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="2"></rect><path d="M8 10h8"></path><circle cx="16.5" cy="14" r="1"></circle></svg>',
+                    feature_storage,
+                ),
+                hero_icon_html(
+                    '<svg viewBox="0 0 24 24"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5"></path><path d="M3 8l6-6M21 8l-6-6M3 16l6 6M21 16l-6 6"></path></svg>',
+                    feature_case,
+                ),
+            ]
+        )
+
     # ---------------------------------------------------
     # 7. Retour des champs de spécifications structurées
     # ---------------------------------------------------
@@ -641,6 +721,35 @@ def build_spec_fields(row):
     if table_os != "-" and "připraveno k práci" not in table_os.lower():
         table_os = f"{table_os} (připraveno k práci)"
 
+    def spec_row_html(label: str, value: str) -> str:
+        return (
+            "<tr>"
+            f"<td>{html.escape(label)}</td>"
+            f"<td>{html.escape(value or '-')}</td>"
+            "</tr>"
+        )
+
+    if is_monitor:
+        spec_rows_html = "".join(
+            [
+                spec_row_html("Rozlišení displeje", spec_resolution or "-"),
+                spec_row_html("Úhlopříčka displeje", spec_diagonal or "-"),
+                spec_row_html("Typ displeje", spec_panel_type or "-"),
+                spec_row_html("Rozměry", table_dimensions or "-"),
+            ]
+        )
+    else:
+        spec_rows_html = "".join(
+            [
+                spec_row_html("Procesor", table_processor or "-"),
+                spec_row_html("Operační paměť", table_ram or "-"),
+                spec_row_html("Úložiště", table_storage or "-"),
+                spec_row_html("Grafická karta", spec_gpu or "-"),
+                spec_row_html("Rozměry", table_dimensions or "-"),
+                spec_row_html("Operační systém", table_os or "-"),
+            ]
+        )
+
     return {
         "spec_processor": spec_processor or "-",
         "spec_ram": spec_ram or "-",
@@ -655,6 +764,8 @@ def build_spec_fields(row):
         "spec_table_storage": table_storage or "-",
         "spec_table_dimensions": table_dimensions or "-",
         "spec_table_os": table_os or "-",
+        "spec_rows_html": spec_rows_html,
+        "hero_feature_icons_html": hero_feature_icons_html,
         "feature_cpu": feature_cpu,
         "feature_ram": feature_ram,
         "feature_storage": feature_storage,
@@ -843,10 +954,13 @@ def build_port_badges(row, max_items: int = 6):
 
 # Fonction qui génère les champs de la section "features" d'une fiche produit à partir des spécifications extraites. Elle retourne un dictionnaire prêt à être injecté dans un template HTML
 def build_feature_section_fields(row, spec_fields):
+    category = guess_category(row)
     spec_cpu = spec_fields.get("spec_processor", "")
     spec_ram = spec_fields.get("spec_ram", "")
     spec_storage = spec_fields.get("spec_storage", "")
     spec_gpu = spec_fields.get("spec_gpu", "")
+    spec_display = spec_fields.get("spec_display", "")
+    spec_dimensions = spec_fields.get("spec_dimensions", "")
     form_factor = guess_form_factor(row)
 
     # Feature 1: Performance
@@ -882,7 +996,7 @@ def build_feature_section_fields(row, spec_fields):
     feature1_image = get_text_property_any(
         row,
         ["feature image 1", "obrázek 1", "obrazek 1", "performance image", "výkon"],
-    ) or "https://img.notebooksbilliger.de/images/products/340000/348141/Lenovo_ThinkCentre_M710e_SFF_2.jpg"
+    ) or row.get("image2") or row.get("image") or "https://img.notebooksbilliger.de/images/products/340000/348141/Lenovo_ThinkCentre_M710e_SFF_2.jpg"
 
     # Feature 2: Ports
     # On génère une description de la connectique qui met en avant les types de ports disponibles. Si aucune information n'est disponible, on génère une description générique
@@ -908,7 +1022,7 @@ def build_feature_section_fields(row, spec_fields):
     feature2_image = get_text_property_any(
         row,
         ["feature image 2", "obrázek 2", "obrazek 2", "ports image", "porty"],
-    ) or "https://img.notebooksbilliger.de/images/products/340000/348141/Lenovo_ThinkCentre_M710e_SFF_3.jpg"
+    ) or row.get("image3") or row.get("image2") or row.get("image") or "https://img.notebooksbilliger.de/images/products/340000/348141/Lenovo_ThinkCentre_M710e_SFF_3.jpg"
 
     # Feature 3: Internal / Design
     # On génère une description du design et de l'intérieur du boîtier qui met en avant les avantages d'un format compact (mini, SFF) ou d'un design pratique pour l'entretien. Si aucune information n'est disponible, on génère une description générique
@@ -925,7 +1039,58 @@ def build_feature_section_fields(row, spec_fields):
     feature3_image = get_text_property_any(
         row,
         ["feature image 3", "obrázek 3", "obrazek 3", "internal image", "vnitřek"],
-    ) or "https://img.notebooksbilliger.de/images/products/340000/348141/Lenovo_ThinkCentre_M710e_SFF_4.jpg"
+    ) or row.get("image4") or row.get("image3") or row.get("image") or "https://img.notebooksbilliger.de/images/products/340000/348141/Lenovo_ThinkCentre_M710e_SFF_4.jpg"
+
+    if category == "monitor":
+        ports = build_port_badges(row)
+        has_video = any(p in ("HDMI", "DisplayPort", "Mini DP", "VGA", "DVI") for p in ports)
+        has_usb_hub = any("USB" in p for p in ports) or normalize_boolish(row.get("filteringProperty:USB hub"))
+
+        feature1_text = (
+            f"Panel <strong>{html.escape(spec_display)}</strong> přináší příjemné zobrazení pro kancelář, web, tabulky i běžnou domácí práci."
+            if spec_display and spec_display != "-"
+            else "Monitor je vhodný pro každodenní kancelářskou práci, studium i běžné domácí použití."
+        )
+        feature1_bullets = [
+            ("leaf", "Příjemné zobrazení při delší práci", "#22c55e"),
+            ("tasks", "Vhodný pro kancelář a studium", "#3b82f6"),
+        ]
+        if spec_dimensions and spec_dimensions != "-":
+            feature1_bullets.append(("bolt", "Praktické rozměry na pracovní stůl", "#eab308"))
+        feature1_bullets_html = "".join(
+            f'<li class="bullet-item">{render_inline_icon(icon, color)} {label}</li>'
+            for icon, label, color in feature1_bullets[:3]
+        )
+
+        parts = ["Monitor lze snadno zapojit k počítači nebo notebooku podle dostupných vstupů."]
+        if has_video:
+            parts.append("Video vstupy usnadní připojení ke kancelářským i domácím sestavám.")
+        if has_usb_hub:
+            parts.append("Integrovaný USB hub rozšiřuje praktické možnosti používání na pracovním stole.")
+        feature2_text = " ".join(parts)
+        feature2_ports_html = "".join(render_port_badge_html(p) for p in ports if p in ("HDMI", "DisplayPort", "Mini DP", "VGA", "DVI", "USB 3.2", "USB 3.1", "USB 3.0", "USB 2.0", "USB-C"))
+
+        internal_text = "Praktické provedení monitoru usnadňuje každodenní používání v kanceláři i doma."
+        if spec_dimensions and spec_dimensions != "-":
+            internal_text += f" Rozměry <strong>{html.escape(spec_dimensions)}</strong> pomáhají s lepším plánováním pracovního prostoru."
+
+        return {
+            "feature1_title": "Příjemný obraz pro každý den",
+            "feature1_text": feature1_text,
+            "feature1_bullets_html": feature1_bullets_html,
+            "feature1_image": feature1_image,
+            "feature1_image_alt": "Displej monitoru",
+            "feature2_title": "Snadné připojení k sestavě",
+            "feature2_text": feature2_text,
+            "feature2_ports_html": feature2_ports_html,
+            "feature2_image": feature2_image,
+            "feature2_image_alt": "Konektivita monitoru",
+            "feature3_title": "Praktické provedení na stůl",
+            "feature3_text": internal_text,
+            "feature3_quote_html": "Praktická volba pro kancelář, domácí práci i studium.",
+            "feature3_image": feature3_image,
+            "feature3_image_alt": "Monitor",
+        }
 
     # Retourne un dictionnaire contenant tous les champs nécessaires pour remplir la section "features" d'une fiche produit, avec des titres, des textes descriptifs, des listes de points forts et des images associées à chaque feature
     return {
@@ -1060,6 +1225,61 @@ def build_faq_fields(row, spec_fields):
     
     # Liste qui contiendra les blocs de questions/réponses à afficher dans la section FAQ de la fiche produit
     faq_items = []
+
+    if is_monitor:
+        faq_items.append(
+            details_block(
+                "Jaká je záruka na repasované monitory?",
+                "Na <strong>veškerou repasovanou výpočetní techniku</strong> poskytujeme záruku na skryté vady v délce "
+                "<strong>24 měsíců</strong>. Pokud budete mít zájem, můžete si záruku prodloužit až na 5 let.",
+            )
+        )
+        faq_items.append(
+            details_block(
+                "V jakém stavu jsou repasované monitory?",
+                "Repasované monitory, stejně jako ostatní výpočetní technika určená k repasi, prochází důkladným čištěním vnějších "
+                "a vnitřních částí a testováním všech dostupných funkcí. Repasované monitory rozdělujeme podle vizuálního stavu "
+                "do kategorie A a kategorie B."
+                "<br><br>"
+                "<strong>Kategorie A</strong> - monitory nesou známky běžného používání, mohou se vyskytnout drobné kosmetické vady "
+                "na stojanu nebo plastovém krytu monitoru vč. plastového rámečku kolem displeje. Na displeji se mohou v omezené míře "
+                "vyskytovat drobné vlásečnicové škrábance, které nejsou při zapnutém stavu vidět a nebrání tak běžnému používání monitoru. "
+                "Jinak je displej bez vad."
+                "<br><br>"
+                "<strong>Kategorie B</strong> - monitory mají větší či menší škrábance na displeji mimo zorné pole uživatele. "
+                "Monitory mohou mít několik vadných pixelů v podobě černých nebo modrých teček, případně fleky na displeji vzniklé "
+                "nerovnoměrným podsvícením displeje v důsledku stáří monitoru. Mohou se vyskytovat drobná poškození na plastovém krytu "
+                "nebo stojanu monitoru, dále může být nedostupná některá z funkcí stojanu monitoru jako např. Pivot, apod.",
+            )
+        )
+        faq_items.append(
+            details_block(
+                "Co je součástí balení?",
+                "Pokud objednáte <strong>repasovaný monitor</strong>, je součástí balení <strong>monitor vč. stojanu</strong>, "
+                "<strong>napájecí kabel</strong> a <strong>video kabel</strong> k propojení monitoru s počítačem.",
+            )
+        )
+        faq_items.append(
+            details_block(
+                "Co je to repas?",
+                "Repas neboli repasovaná výpočetní technika je již dříve používané zařízení. V rámci repase jsou počítače a notebooky "
+                "kompletně rozebrány za účelem důkladného čištění a testování všech komponentů. Pokud se při testech hardwaru ukážou "
+                "některé komponenty jako nefunkční, jsou nahrazeny funkčními nebo novými tak, aby bylo možné zařízení i nadále používat "
+                "a my na něj mohli poskytnout záruku. <strong>Repasovaný notebook nebo počítač je tak vhodnou volbou</strong> pro ty, kteří "
+                "hledají levnější alternativu k novým počítačům, ale stále chtějí mít výkonné a spolehlivé zařízení.",
+            )
+        )
+        faq_items.append(
+            details_block(
+                "Kde nakupujete výpočetní techniku určenou k repasi?",
+                "Původ těchto zařízení je ve velkých korporátních firmách, které tyto počítače prodávají za účelem obnovy firemního "
+                "vybavení, které je vyměňováno za novější technologie. Počítače a notebooky určené k repasi vykupujeme z českých nebo "
+                "zahraničních firem napřímo. Firemní počítače a notebooky jsou vyrobeny tak, aby měly co nejdelší životnost a co největší "
+                "výkon, proto jsou vhodnou alternativou pro ty, kteří hledají levnější variantu k novým počítačům, ale stále chtějí mít "
+                "výkonné a spolehlivé zařízení.",
+            )
+        )
+        return {"faq_html": "".join(faq_items)}
 
     #-----------------------------------------------------------------------------
     # Question 1 : Garantie
@@ -1263,6 +1483,16 @@ def _extract_short_model_name(row) -> str:
         return m.group(1).strip()
     # Si aucun tiret suivi d'une config n'est trouvé, on retourne le nom complet tel quel, en supprimant les espaces superflus
     return full_name.strip()
+
+
+def _extract_manufacturer_name(row) -> str:
+    manufacturer = (row.get("manufacturer") or "").strip()
+    if manufacturer:
+        return manufacturer
+    short_model = _extract_short_model_name(row)
+    if short_model:
+        return short_model.split()[0]
+    return ""
 
 
 # ============================================================
@@ -1506,6 +1736,7 @@ def generate_offline_long_description(row, specs_fields, language: str):
     """Génère une description longue structurée sans IA."""
     name = row.get("name") or ""
     short_model = _extract_short_model_name(row)
+    manufacturer = _extract_manufacturer_name(row)
     category = guess_category(row)
     form_factor = guess_form_factor(row)
     spec_cpu = specs_fields.get("spec_processor", "")
@@ -1527,6 +1758,54 @@ def generate_offline_long_description(row, specs_fields, language: str):
 
     parts = []
 
+    if category == "monitor":
+        monitor_ports = []
+        for port_label, raw_value in [
+            ("VGA", row.get("filteringProperty:VGA")),
+            ("DVI", row.get("filteringProperty:DVI")),
+            ("HDMI", row.get("filteringProperty:HDMI")),
+            ("DisplayPort", row.get("filteringProperty:DisplayPort")),
+            ("Mini DisplayPort", row.get("filteringProperty:Mini DisplayPort")),
+            ("USB hub", row.get("filteringProperty:USB hub")),
+        ]:
+            if normalize_boolish(raw_value):
+                monitor_ports.append(port_label)
+
+        parts.append(
+            f"<p>{html.escape(short_model)} je {category_label} vhodný pro každodenní kancelářskou práci, "
+            "domácí použití, studium i jako druhá obrazovka k notebooku nebo počítači.</p>"
+        )
+        if manufacturer:
+            parts.append(
+                f"<p><strong>{html.escape(manufacturer)}</strong> patří mezi známé výrobce kancelářské a firemní techniky. "
+                "Jejich monitory jsou oblíbené pro spolehlivý provoz, praktickou výbavu a dobrý komfort při delší práci.</p>"
+            )
+        if spec_display and spec_display != "-":
+            parts.append(
+                f"<p>Obraz zajišťuje <strong>{html.escape(spec_display)}</strong>, což se hodí pro běžnou práci s dokumenty, "
+                "webem, tabulkami i e-maily během celého dne.</p>"
+            )
+        if monitor_ports:
+            parts.append(
+                f"<p>Monitor nabízí praktickou konektivitu v podobě <strong>{html.escape(', '.join(monitor_ports))}</strong>, "
+                "takže jej lze snadno připojit k různým typům počítačů a pracovních sestav.</p>"
+            )
+        elif spec_dimensions and spec_dimensions != "-":
+            parts.append(
+                f"<p>Praktické rozměry <strong>{html.escape(spec_dimensions)}</strong> usnadňují zařazení monitoru na domácí i kancelářský stůl.</p>"
+            )
+        parts.append(
+            "<p>Hodí se pro kancelářské aplikace, prohlížení webu, administrativu, studium i běžné multimediální použití. "
+            "Dobře poslouží také jako externí monitor k notebooku.</p>"
+        )
+        parts.append(
+            "<p>Nehodí se pro nejnáročnější profesionální grafickou práci, střih videa ve vysokém rozlišení ani pro kompetitivní hraní nejnovějších her.</p>"
+        )
+        parts.append(
+            "<p>Zařízení je otestováno a kryto <strong>zárukou 24 měsíců</strong>.</p>"
+        )
+        return "".join(parts)
+
     # Section 1 : Introduction
     parts.append(
         f"<p>{html.escape(short_model)} je {category_label} vhodný pro každodenní kancelářskou práci, "
@@ -1534,8 +1813,9 @@ def generate_offline_long_description(row, specs_fields, language: str):
     )
 
     # Section 2 : Marque
+    brand_label = html.escape(manufacturer or "Tento výrobce")
     parts.append(
-        "<p><strong>Lenovo</strong> patří mezi přední světové výrobce výpočetní techniky. "
+        f"<p><strong>{brand_label}</strong> patří mezi přední světové výrobce výpočetní techniky. "
         "Jejich kancelářské počítače jsou navrženy pro dlouhodobé a spolehlivé používání v náročném firemním prostředí.</p>"
     )
 
@@ -1603,6 +1883,8 @@ def generate_offline_short_description(row, specs_fields, language: str):
     form_factor = guess_form_factor(row)
     spec_storage = specs_fields.get("spec_storage", "")
     spec_ram = specs_fields.get("spec_ram", "")
+    spec_resolution = row.get("filteringProperty:Rozlišení displeje") or ""
+    spec_diagonal = row.get("filteringProperty:Úhlopříčka displeje") or ""
 
     category_map = {
         "desktop": "stolní počítač",
@@ -1611,6 +1893,14 @@ def generate_offline_short_description(row, specs_fields, language: str):
         "computer": "počítač",
     }
     category_label = category_map.get(category, "počítač")
+
+    if category == "monitor":
+        parts = [f"{html.escape(short_model)} je spolehlivý {category_label} pro kancelář, domácí práci i studium."]
+        if spec_resolution and spec_diagonal:
+            parts.append(f"Nabízí rozlišení {html.escape(spec_resolution)} a úhlopříčku {html.escape(spec_diagonal)} pro pohodlné každodenní použití.")
+        elif spec_resolution:
+            parts.append(f"Nabízí rozlišení {html.escape(spec_resolution)} pro pohodlné každodenní použití.")
+        return " ".join(parts).strip()
 
     parts = []
     if form_factor == "mini":
@@ -1798,6 +2088,15 @@ def apply_template(template_text: str, values: dict) -> str:
     result = template_text
     for key, value in values.items():
         result = result.replace(f"{{{{{key}}}}}", value)
+    spec_rows_html = values.get("spec_rows_html")
+    if spec_rows_html and '<table class="spec-table">' in result:
+        result = re.sub(
+            r'(<table class="spec-table">)\s*.*?\s*(</table>)',
+            rf"\1\n          {spec_rows_html}\n        \2",
+            result,
+            count=1,
+            flags=re.DOTALL,
+        )
     return result
 
 # Fonction qui va aplatir un texte HTML en supprimant les retours à la ligne et les espaces superflus, pour faciliter la validation de la complétude du fragment HTML généré par l'IA
