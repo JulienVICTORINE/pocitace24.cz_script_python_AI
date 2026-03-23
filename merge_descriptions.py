@@ -9,6 +9,10 @@ import unicodedata
 import urllib.error
 import urllib.request
 
+MAX_RAM_CODE_PREFIX_OVERRIDES = {
+    "THINKT14SG1": "64 GB",
+}
+
 
 # Fonction qui permet de nettoyer le HTML
 def strip_html(text: str) -> str:
@@ -107,6 +111,36 @@ def write_csv(path: str, rows, fieldnames, delimiter: str = ";", encoding: str =
         # Parcourt chaque ligne et l'écrit dans le fichier
         for row in rows:
             writer.writerow(row)
+
+
+def extract_max_ram_capacity(row) -> str:
+    ram_upgrades = row.get("surchargeParameter:Navýšení operační paměti RAM") or ""
+    if ram_upgrades:
+        matches = re.findall(r"\b(\d+)\s*GB\b", ram_upgrades)
+        if matches:
+            try:
+                return f"{max(int(m) for m in matches)} GB"
+            except Exception:
+                pass
+
+    code = (row.get("code") or "").strip().upper()
+    pair_code = (row.get("pairCode") or "").strip().upper()
+    for prefix, max_ram in MAX_RAM_CODE_PREFIX_OVERRIDES.items():
+        normalized_prefix = prefix.strip().upper()
+        if code.startswith(normalized_prefix) or pair_code.startswith(normalized_prefix):
+            return max_ram
+    return ""
+
+
+def normalize_cpu_label(cpu_text: str) -> str:
+    value = (cpu_text or "").strip()
+    if not value:
+        return ""
+
+    value = re.sub(r"\s+Processor\b", "", value, flags=re.IGNORECASE).strip()
+    value = re.sub(r"(\d+)×(\d+(?:[.,]\d+)?)\s*GHz\b", r"\2 GHz", value, flags=re.IGNORECASE)
+    value = re.sub(r"\s+", " ", value).strip()
+    return value
 
 # Fonction qui va extraire des caractéristiques produit (label, valeur) depuis les colonnes
 def extract_specs(row, max_specs: int = 18):
@@ -233,6 +267,27 @@ def parse_specs_from_short_description(text: str) -> dict:
     parsed["webcam"] = "webkamera" in short_desc_ascii or "webcam" in short_desc_ascii
     parsed["backlit_keyboard"] = "podsvicena klavesnice" in short_desc_ascii or "backlit keyboard" in short_desc_ascii
     return parsed
+
+
+def format_case_type_label(case_type: str) -> str:
+    raw = (case_type or "").strip()
+    if not raw:
+        return ""
+
+    match = re.match(r"([A-Z]+)\s*\(([^)]+)\)", raw)
+    if match:
+        return match.group(2).strip()
+
+    normalized = deaccent(raw).lower()
+    mapping = {
+        "sff": "Small Form Factor",
+        "mff": "Mini PC",
+        "mini": "Mini PC",
+        "tiny": "Mini PC",
+        "usff": "Ultra Small Form Factor",
+        "tower": "Tower",
+    }
+    return mapping.get(normalized, raw)
 
 # Fonction qui va générer un badge HTML pour un port donné, avec une icône spécifique en fonction du type de port
 # Cette fonction utilise des SVG inline pour les icônes et applique une couleur de fond différente selon le type de port (USB, HDMI, LAN, etc.)
@@ -428,6 +483,7 @@ def build_spec_fields(row):
         spec_processor = cpu_model or processor
     if not spec_processor:
         spec_processor = parsed_short_specs.get("processor", "")
+    spec_processor = normalize_cpu_label(spec_processor)
 
     # ---------------------------------------------------
     # 2. Construction du champ MÉMOIRE RAM
@@ -440,24 +496,21 @@ def build_spec_fields(row):
     spec_ram = " ".join(x for x in [ram_size, ram_type] if x).strip()
 
     # Certaines fiches produit contiennent des options d’upgrade RAM
-    ram_upgrades = row.get("surchargeParameter:Navýšení operační paměti RAM") or ""
+    max_ram_capacity = extract_max_ram_capacity(row)
 
     # Si des options existent, on cherche la RAM maximale possible
-    if ram_size and ram_upgrades:
-        # Find max RAM size in upgrade options, e.g. "na 64 GB"
-        matches = re.findall(r"\b(\d+)\s*GB\b", ram_upgrades)
-        if matches:
-            try:
-                current = int(re.findall(r"\d+", ram_size)[0])
-                max_ram = max(int(m) for m in matches)
+    if ram_size and max_ram_capacity:
+        try:
+            current = int(re.findall(r"\d+", ram_size)[0])
+            max_ram = int(re.findall(r"\d+", max_ram_capacity)[0])
 
-                # Si la RAM maximale est supérieure à celle installée, on génère une indication du type "16 GB až 64 GB"
-                if max_ram > current:
-                    spec_ram = f"{current} GB až {max_ram} GB"
-                    if ram_type:
-                        spec_ram = f"{spec_ram} {ram_type}"
-            except Exception:
-                pass
+            # Si la RAM maximale est supérieure à celle installée, on génère une indication du type "16 GB až 64 GB"
+            if max_ram > current:
+                spec_ram = f"{current} GB až {max_ram} GB"
+                if ram_type:
+                    spec_ram = f"{spec_ram} {ram_type}"
+        except Exception:
+            pass
     if not spec_ram:
         spec_ram = parsed_short_specs.get("ram", "")
 
@@ -514,11 +567,8 @@ def build_spec_fields(row):
     case_type = row.get("filteringProperty:Typ skříně") or ""
 
     # Ajoute le type de boîtier aux dimensions si ce n'est pas déjà présent
-    if spec_dimensions and case_type and case_type not in spec_dimensions:
-        case_label = case_type
-        m = re.match(r"([A-Z]+)\s*\(([^)]+)\)", case_type)
-        if m:
-            case_label = m.group(2).strip()
+    case_label = format_case_type_label(case_type)
+    if spec_dimensions and case_label and case_label not in spec_dimensions:
         spec_dimensions = f"{spec_dimensions} ({case_label})"
 
     # Récupération du système d'exploitation
@@ -575,6 +625,22 @@ def build_spec_fields(row):
     # ---------------------------------------------------
     # 7. Retour des champs de spécifications structurées
     # ---------------------------------------------------
+    table_processor = spec_processor or "-"
+    table_ram = spec_ram or "-"
+    table_storage = re.sub(r"^\d+\s*(?:GB|TB)\s+", "", spec_storage or "", flags=re.IGNORECASE).strip()
+    if "NVMe" in table_storage and "vysoká rychlost čtení i zápisu" not in table_storage:
+        table_storage = f"{table_storage} (vysoká rychlost čtení i zápisu)".strip()
+    if "vysoká rychlost čtení i zápisu" in (spec_storage or "") and "vysoká rychlost čtení i zápisu" not in table_storage:
+        table_storage = f"{table_storage} (vysoká rychlost čtení i zápisu)".strip()
+    if not table_storage:
+        table_storage = spec_storage or "-"
+    table_dimensions = spec_dimensions or "-"
+    if table_dimensions == "-" and case_label:
+        table_dimensions = case_label
+    table_os = spec_os or "-"
+    if table_os != "-" and "připraveno k práci" not in table_os.lower():
+        table_os = f"{table_os} (připraveno k práci)"
+
     return {
         "spec_processor": spec_processor or "-",
         "spec_ram": spec_ram or "-",
@@ -584,6 +650,11 @@ def build_spec_fields(row):
         "spec_equipment": spec_equipment or "-",
         "spec_dimensions": spec_dimensions or "-",
         "spec_os": spec_os or "-",
+        "spec_table_processor": table_processor or "-",
+        "spec_table_ram": table_ram or "-",
+        "spec_table_storage": table_storage or "-",
+        "spec_table_dimensions": table_dimensions or "-",
+        "spec_table_os": table_os or "-",
         "feature_cpu": feature_cpu,
         "feature_ram": feature_ram,
         "feature_storage": feature_storage,

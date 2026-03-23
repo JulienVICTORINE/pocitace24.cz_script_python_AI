@@ -284,21 +284,29 @@
       /* TABLE */
       .spec-table {
         width: 100%;
-        border-radius: 15px;
+        border-radius: 32px;
         overflow: hidden;
         background: white;
-        border: 1px solid #eee;
+        border: 1px solid #eceff3;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
       }
 
       .spec-table td {
-        padding: 20px 14px;
-        border-bottom: 1px solid #eee;
+        padding: 30px 34px;
+        border-bottom: 1px solid #edf1f5;
+        font-size: 18px;
+        color: #1f2937;
       }
 
       .spec-table td:first-child {
-        font-weight: bold;
-        background: #f9fafb;
-        width: 35%;
+        font-weight: 800;
+        background: #f7f8fb;
+        width: 34%;
+        color: #0f172a;
+      }
+
+      .spec-table tr:last-child td {
+        border-bottom: none;
       }
 
       /* SUITABILITY */
@@ -437,10 +445,7 @@
       <!-- HERO -->
       <div class="card">
         <h2>Spolehlivý základ pro Vaše podnikání</h2>
-        <div class="hero-copy">
-          <h3>{{name}}</h3>
-          {{long_description_html}}
-        </div>
+        <div class="hero-copy">{{long_description_html}}</div>
 
         <div class="feature-icons">
           <div class="feature-icon">
@@ -534,27 +539,27 @@
         <table class="spec-table">
           <tr>
             <td>Procesor</td>
-            <td>{{spec_processor}}</td>
+            <td>{{spec_table_processor}}</td>
           </tr>
           <tr>
-            <td>RAM</td>
-            <td>{{spec_ram}}</td>
+            <td>Operační paměť</td>
+            <td>{{spec_table_ram}}</td>
           </tr>
           <tr>
             <td>Úložiště</td>
-            <td>{{spec_storage}}</td>
+            <td>{{spec_table_storage}}</td>
           </tr>
           <tr>
-            <td>GPU</td>
+            <td>Grafická karta</td>
             <td>{{spec_gpu}}</td>
           </tr>
           <tr>
             <td>Rozměry</td>
-            <td>{{spec_dimensions}}</td>
+            <td>{{spec_table_dimensions}}</td>
           </tr>
           <tr>
-            <td>OS</td>
-            <td>{{spec_os}}</td>
+            <td>Operační systém</td>
+            <td>{{spec_table_os}}</td>
           </tr>
         </table>
       </div>
