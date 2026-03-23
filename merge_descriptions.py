@@ -203,6 +203,18 @@ def get_text_property_any(row, label_contains_list):
             return value
     return ""
 
+
+def sanitize_image_candidate(value: str) -> str:
+    candidate = (value or "").strip()
+    if not candidate:
+        return ""
+    candidate_lower = candidate.lower()
+    if candidate_lower.startswith(("http://", "https://")):
+        return candidate
+    if re.search(r"\.(jpg|jpeg|png|webp|gif)(\?.*)?$", candidate_lower):
+        return candidate
+    return ""
+
 # Fonction qui va extraire des spécifications structurées depuis la description courte du produit (shortDescription)
 def parse_specs_from_short_description(text: str) -> dict:
     short_desc = strip_html(text or "")
@@ -578,6 +590,7 @@ def build_spec_fields(row):
 
     if not spec_os:
         spec_os = parsed_short_specs.get("os", "")
+    spec_os = re.sub(r"\s*\(Elektronická licence\)\s*", "", spec_os, flags=re.IGNORECASE).strip()
     spec_display = (
         get_text_property(row, "displej")
         or get_text_property(row, "display")
@@ -686,6 +699,7 @@ def build_spec_fields(row):
                 hero_icon_html(
                     '<svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1"></rect><path d="M9 1v3M15 1v3M9 20v3M15 20v3M20 9h3M20 15h3M1 9h3M1 15h3"></path><path d="M4 4h2M18 4h2M4 20h2M18 20h2"></path></svg>',
                     feature_cpu,
+                    "feature-icon-nowrap",
                 ),
                 hero_icon_html(
                     '<svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="8" rx="2"></rect><path d="M7 7v8M11 7v8M15 7v8M19 7v8"></path><path d="M6 17v2M10 17v2M14 17v2M18 17v2"></path></svg>',
@@ -993,10 +1007,17 @@ def build_feature_section_fields(row, spec_fields):
         for icon, label, color in bullets
     )
     
-    feature1_image = get_text_property_any(
-        row,
-        ["feature image 1", "obrázek 1", "obrazek 1", "performance image", "výkon"],
-    ) or row.get("image2") or row.get("image") or "https://img.notebooksbilliger.de/images/products/340000/348141/Lenovo_ThinkCentre_M710e_SFF_2.jpg"
+    feature1_image = (
+        sanitize_image_candidate(
+            get_text_property_any(
+                row,
+                ["feature image 1", "obrázek 1", "obrazek 1", "performance image"],
+            )
+        )
+        or sanitize_image_candidate(row.get("image2"))
+        or sanitize_image_candidate(row.get("image"))
+        or "https://img.notebooksbilliger.de/images/products/340000/348141/Lenovo_ThinkCentre_M710e_SFF_2.jpg"
+    )
 
     # Feature 2: Ports
     # On génère une description de la connectique qui met en avant les types de ports disponibles. Si aucune information n'est disponible, on génère une description générique
@@ -1019,10 +1040,18 @@ def build_feature_section_fields(row, spec_fields):
     # On génère une liste de badges HTML pour les ports détectés, qui seront affichés dans la section "features" de la fiche produit. Chaque badge est stylisé avec une classe CSS et contient le nom du port
     feature2_ports_html = "".join(render_port_badge_html(p) for p in ports)
     # On tente de récupérer une image spécifique pour illustrer la section des ports. Si aucune image n'est fournie dans les données, on utilise une image générique par défaut
-    feature2_image = get_text_property_any(
-        row,
-        ["feature image 2", "obrázek 2", "obrazek 2", "ports image", "porty"],
-    ) or row.get("image3") or row.get("image2") or row.get("image") or "https://img.notebooksbilliger.de/images/products/340000/348141/Lenovo_ThinkCentre_M710e_SFF_3.jpg"
+    feature2_image = (
+        sanitize_image_candidate(
+            get_text_property_any(
+                row,
+                ["feature image 2", "obrázek 2", "obrazek 2", "ports image", "porty"],
+            )
+        )
+        or sanitize_image_candidate(row.get("image3"))
+        or sanitize_image_candidate(row.get("image2"))
+        or sanitize_image_candidate(row.get("image"))
+        or "https://img.notebooksbilliger.de/images/products/340000/348141/Lenovo_ThinkCentre_M710e_SFF_3.jpg"
+    )
 
     # Feature 3: Internal / Design
     # On génère une description du design et de l'intérieur du boîtier qui met en avant les avantages d'un format compact (mini, SFF) ou d'un design pratique pour l'entretien. Si aucune information n'est disponible, on génère une description générique
@@ -1036,10 +1065,18 @@ def build_feature_section_fields(row, spec_fields):
     if spec_gpu and spec_gpu != "-" and is_dedicated_gpu(spec_gpu):
         internal_text += " Dedikovaná grafika přidává výkon pro náročnější vizuální úkoly."
 
-    feature3_image = get_text_property_any(
-        row,
-        ["feature image 3", "obrázek 3", "obrazek 3", "internal image", "vnitřek"],
-    ) or row.get("image4") or row.get("image3") or row.get("image") or "https://img.notebooksbilliger.de/images/products/340000/348141/Lenovo_ThinkCentre_M710e_SFF_4.jpg"
+    feature3_image = (
+        sanitize_image_candidate(
+            get_text_property_any(
+                row,
+                ["feature image 3", "obrázek 3", "obrazek 3", "internal image", "vnitřek"],
+            )
+        )
+        or sanitize_image_candidate(row.get("image4"))
+        or sanitize_image_candidate(row.get("image3"))
+        or sanitize_image_candidate(row.get("image"))
+        or "https://img.notebooksbilliger.de/images/products/340000/348141/Lenovo_ThinkCentre_M710e_SFF_4.jpg"
+    )
 
     if category == "monitor":
         ports = build_port_badges(row)
