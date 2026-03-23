@@ -1245,9 +1245,12 @@ OUTPUT FORMAT:
 Return ONLY an HTML fragment. Use <h3>, <p>, <strong>. No <ul>, no <li>, no bullet points, no semicolons (;).
 Write in coherent sentences and short paragraphs. Professional, calm, understandable tone for non-technical users.
 Do NOT use marketing filler phrases. Do NOT explain what "refurbished" means.
+Write at least 5 paragraphs when the available source data is rich enough.
 
 STRICT RULES:
 - Keep the same overall factual meaning as the base description. Improve wording only, never facts.
+- If the source data includes display, graphics, WiFi, Bluetooth, webcam, backlit keyboard, or OS information, integrate these facts naturally into the description.
+- Explain clearly what the device is good for and what it is not suitable for in separate paragraphs.
 - Outside the <h3> title, NEVER use the full variant name "{name}" (with config like "- 8 Go - 500 Go").
 - In the body text, use only "{short_model}" or "cette configuration".
 - No bullet points, no numbered lists, no semicolons.
@@ -1308,9 +1311,12 @@ Return ONLY an HTML fragment. Use <h3>, <p>, <strong>. No <ul>, no <li>, no bull
 Write in coherent sentences and short paragraphs. Professional, calm, understandable tone for non-technical users.
 Be commercial but factual. No marketing filler.
 Do NOT explain what "refurbished" means.
+Write at least 5 paragraphs when the available source data is rich enough.
 
 STRICT RULES:
 - Keep the same overall factual meaning as the base description. You may improve wording, but not facts.
+- If the source data includes display, graphics, WiFi, Bluetooth, webcam, backlit keyboard, or OS information, integrate these facts naturally into the description.
+- Explain clearly what the device is good for and what it is not suitable for in separate paragraphs.
 - Outside the <h3> title, NEVER write the full variant name "{name}" (the one containing config like "- 8 Go").
 - Always use "{short_model}" or "cette configuration" in the body text.
 - No bullet points or numbered lists anywhere.
@@ -1435,6 +1441,8 @@ def generate_offline_long_description(row, specs_fields, language: str):
     spec_ram = specs_fields.get("spec_ram", "")
     spec_storage = specs_fields.get("spec_storage", "")
     spec_gpu = specs_fields.get("spec_gpu", "")
+    spec_display = specs_fields.get("spec_display", "")
+    spec_equipment = specs_fields.get("spec_equipment", "")
     spec_dimensions = specs_fields.get("spec_dimensions", "")
     case_type = row.get("filteringProperty:Typ skříně") or ""
 
@@ -1482,6 +1490,14 @@ def generate_offline_long_description(row, specs_fields, language: str):
             perf_bits.append(f"Kapacita úložiště <strong>{html.escape(spec_storage)}</strong> poskytuje dostatek místa pro data a dokumenty.")
     if perf_bits:
         parts.append(f"<p>{' '.join(perf_bits)}</p>")
+    if spec_display and spec_display != "-":
+        parts.append(
+            f"<p>Obraz zajiÅ¡Å¥uje <strong>{html.escape(spec_display)}</strong>, coÅ¾ je vhodnÃ© pro bÄ›Å¾nou kancelÃ¡Å™skou prÃ¡ci, prÃ¡ci na webu i delÅ¡Ã­ pouÅ¾Ã­vÃ¡nÃ­ bÄ›hem dne.</p>"
+        )
+    if spec_equipment and spec_equipment != "-":
+        parts.append(
+            f"<p>Ve vÃ½bavÄ› nechybÃ­ <strong>{html.escape(spec_equipment)}</strong>, takÅ¾e je zaÅ™Ã­zenÃ­ lÃ©pe pÅ™ipravenÃ© pro online schÅ¯zky, bezdrÃ¡tovÃ© pÅ™ipojenÃ­ i pohodlnou kaÅ¾dodennÃ­ prÃ¡ci.</p>"
+        )
 
     # Section 5 : Hodí se pro (Convient pour)
     parts.append(
